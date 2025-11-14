@@ -18,6 +18,7 @@ class EpsModel(Protocol):  # Bidimentional model
                  *,
                  y_context:torch.Tensor,
                  x_context: torch.Tensor,
+                 mask_context: torch.Tensor,
                  key: torch.Generator   # for dropout etc.
                  ) -> torch.Tensor:      # predicted noise     [N, y_dim]
         ...
@@ -151,38 +152,6 @@ class GaussianDiffusion:
         var  = torch.clamp(β_t * (t > 0), min=1e-3)
         return mean, var
 
-    # ----------------------------------------------------------- full sample
-    def sample(self,
-               key: torch.Generator,
-               x:   torch.Tensor,           # [B, x_dim]
-               mask: torch.Tensor | None,
-               *,
-               x_context: torch.Tensor,
-               y_context: torch.Tensor,
-               model_fn: EpsModel,
-               output_dim: int = 1
-               ) -> torch.Tensor:
-        """
-        Draw *unconditional* sample y(x) from learned reverse process.
-        """
-        device = self.device
-        B      = x.size(0)
-        y = torch.randn(B, output_dim, device=device, dtype=self.dtype,
-                        generator=key)             # initial y_T [B, T]
-
-        if mask is None:
-            mask = torch.zeros(B, device=device, dtype=self.dtype) # [B]
-
-        for t in reversed(range(len(self.betas))):
-            g1, g2 = torch.Generator(device), torch.Generator(device)
-            g1.manual_seed(torch.randint(0, 2**63-1, (1,)).item())
-            g2.manual_seed(torch.randint(0, 2**63-1, (1,)).item())
-
-            eps_hat = model_fn(torch.tensor(t, device=device),
-                               y, x, mask, key=g1)
-            y = self.ddpm_backward_step(g2, eps_hat, y,
-                                        torch.tensor(t, device=device))
-        return y
 
 
     def sample(self,
@@ -190,87 +159,74 @@ class GaussianDiffusion:
                x:   torch.Tensor,           # [B, x_dim]
                mask: torch.Tensor | None,
                *,
-               x_context: torch.Tensor,
-               y_context: torch.Tensor,
+               x_context: torch.Tensor | None,
+               y_context: torch.Tensor | None,
+               mask_context: torch.Tensor | None,
                model_fn: EpsModel,
                output_dim: int = 1
                ) -> torch.Tensor:
         """
         Draw *unconditional* sample y(x) from learned reverse process.
         """
-        device = self.device
         B      = x.size(0)
-        y = torch.randn(B, output_dim, device=device, dtype=self.dtype,
+        y = torch.randn(B, output_dim, device=self.device, dtype=self.dtype,
                         generator=key)             # initial y_T [B, T]
 
         if mask is None:
-            mask = torch.zeros(B, device=device, dtype=self.dtype) # [B]
+            mask = torch.zeros(B, device=self.device, dtype=self.dtype) # [B]
+
+        # TODO: zeros or ones?
+        if mask_context is None:
+            mask_context = torch.ones (len(x_context),device=self.device, dtype=self.dtype)  # 1 ⇒ context
 
         for t in reversed(range(len(self.betas))):
-            g1, g2 = torch.Generator(device), torch.Generator(device)
-            g1.manual_seed(torch.randint(0, 2**63-1, (1,)).item())
-            g2.manual_seed(torch.randint(0, 2**63-1, (1,)).item())
-
-            eps_hat = model_fn(torch.tensor(t, device=device),
-                               y, x, mask, key=g1)
-            y = self.ddpm_backward_step(g2, eps_hat, y,
-                                        torch.tensor(t, device=device))
+            # TODO: start from T or T-1?
+            noise_hat = model_fn(t, y, x, mask,
+                                 x_context=x_context, y_context=y_context,
+                                 mask_context=mask_context, key=key)
+            y = self.ddpm_backward_step(key, noise_hat, y, t)
         return y
 
 
-   # ------------------------------------------------------- conditional DDPM
-    @torch.no_grad()
-    def conditional_sample(
-        self,
-        key: torch.Generator,
-        x: torch.Tensor,                 # [N, x_dim]      – target inputs
-        mask: torch.Tensor | None,
-        *,
-        x_context: torch.Tensor,         # [M, x_dim]
-        y_context: torch.Tensor,         # [M, y_dim]
-        mask_context: torch.Tensor | None,
-        model_fn: EpsModel,
-        num_inner_steps: int = 5,
-    ) -> torch.Tensor:
-        """
-        Conditional generation.
 
-        Methods:
-          - 'repaint' (original): forward-diffuses context each step and uses RePaint inner loop.
-          - 'unified' (ours): keeps context CLEAN, predicts eps for targets only, and updates targets only.
-        """
-        assert method in ("repaint", "unified"), "method must be 'repaint' or 'unified'"
 
-        device, dtype = self.device, self.dtype
-        B_tgt         = x.size(0)
-        y_dim         = y_context.size(-1)
+def stratified_timesteps(
+    batch_size: int,
+    num_timesteps: int,
+    device=None,
+    generator: torch.Generator | None = None,
+) -> torch.Tensor:
+    """
+    Stratified / low-discrepancy sampling of diffusion timesteps.
 
-        # ---- default masks ------------------------------------------------
-        if mask         is None: mask         = torch.zeros(B_tgt, device=device, dtype=dtype)  # 0 ⇒ target
-        if mask_context is None: mask_context = torch.ones (len(x_context), device=device, dtype=dtype)  # 1 ⇒ context
+    Returns:
+        t: Long tensor of shape [batch_size], with values in {0, ..., num_timesteps-1}.
+    """
+    if device is None:
+        device = "cpu"
 
-        # ---- concatenate arrays for one network call ----------------------
-        x_aug    = torch.cat([x_context, x], dim=0)          # [(M+N), x_dim]
-        mask_aug = torch.cat([mask_context, mask], dim=0)    # [(M+N)]
-        num_ctx  = len(x_context)
+    T = float(num_timesteps)
+    B = float(batch_size)
 
-        # ---- initial noisy target at time T -------------------------------
-        y_t = torch.randn(B_tgt, y_dim, device=device, dtype=dtype, generator=key)
+    # Width of each "bin" in continuous time
+    step = T / B  # = num_timesteps / batch_size
 
-        # ------------------ unified path: keep context CLEAN ----------------
-        for t in range(len(self.betas) - 1, -1, -1):  # include t=0
-            t_tensor = torch.tensor(t, device=device)
-            # Net sees clean context + current noisy targets; predicts eps for targets only
-            y_aug_in = torch.cat([y_context, y_t], dim=0)         # [(M+N), y_dim]
-            g_model  = torch.Generator(device); g_model.manual_seed(torch.randint(0, 2**63-1, (1,)).item())
-            g_rev    = torch.Generator(device);   g_rev.manual_seed(torch.randint(0, 2**63-1, (1,)).item())
+    # Sample one offset in [0, step) for each batch element
+    # shape: [B]
+    t = torch.rand(batch_size, device=device, generator=generator) * step
 
-            eps_hat_tgt = model_fn(t_tensor, y_aug_in, x_aug, mask_aug, key=g_model)  # [N, y_dim]
-            y_t         = self.ddpm_backward_step(g_rev, eps_hat_tgt, y_t, t_tensor)  # update targets only
-        return y_t
+    # Shift each sample into a different bin:
+    # bin 0: [0*step, 1*step)
+    # bin 1: [1*step, 2*step)
+    # ...
+    # bin B-1: [(B-1)*step, B*step) = [(B-1)*step, T)
+    bins = step * torch.arange(batch_size, device=device)
+    t = t + bins
 
-        # after the loop y_t is at time 0 → final sample
-        return y_t
+    # Map to valid integer timesteps 0..T-1
+    # (clamp just in case of tiny floating overshoot)
+    t = t.clamp(0, T - 1 - 1e-6).long()
+    return t # [B]
 
 
 def loss(process: GaussianDiffusion,
@@ -281,38 +237,38 @@ def loss(process: GaussianDiffusion,
          num_timesteps: int,
          loss_type: str = "l1") -> torch.Tensor:
 
-    metric = (lambda a, b: (a - b).abs()) if loss_type == "l1" \
-             else (lambda a, b: (a - b) ** 2)
+    if loss_type == "l1":
+        metric = lambda a, b: (a - b).abs()
+    elif loss_type == "l2":
+        metric = lambda a, b: (a - b) ** 2
+    else:
+        raise ValueError(f"Unknown loss_type: {loss_type}")
 
     # B = batch size, N = # of target points
     B, N, y_dim = batch.y_target.shape
 
     device = batch.y_target.device
-    t = torch.randint(0, num_timesteps, (B,), generator=key, device=device)  # [B]
+    t = stratified_timesteps(B, num_timesteps, device=device, generator=key)  # [B]
 
     # Expand for batched computation
-    t_ = t.view(B, 1, 1)                              # [B,1,1]
-    ᾱ_t = process.alpha_bars[t_].to(device)          # [B,1,1]
-    yt = torch.sqrt(ᾱ_t) * batch.y_target + \
-         torch.sqrt(1. - ᾱ_t) * torch.randn_like(batch.y_target)  # [B,N,1]
+    t = t.view(B, 1, 1)                              # [B,1,1]
+    yt, noise_true = process.forward(key, batch.y_target, t)    # [B,N,1]
+
+
+    mask_target = batch.mask_target if batch.mask_target is not None else torch.zeros(B, N, device=device)
 
     # Run model
-    noise_hat = network(
-        t.to(dtype=torch.float32),
-        yt,
-        batch.x_target,
-        batch.mask_target if batch.mask_target is not None else torch.zeros(B, N, device=device),
+    noise_hat = network(t, yt, batch.x_target, batch.mask_target,
+        x_context=batch.x_context,
+        y_context=batch.y_context,
+        mask_context=batch.mask_context,
         key=key
     )
-    noise_true = (yt - torch.sqrt(ᾱ_t) * batch.y_target) / torch.sqrt(1. - ᾱ_t)
 
     # Per-point loss
     loss_per = metric(noise_true, noise_hat).sum(-1)  # [B,N]
 
-    mask_target = batch.mask_target if batch.mask_target is not None else torch.zeros(B, N, device=device)
-    mask = 1.0 - mask_target
+    loss_per = loss_per * (1-mask_target)                    # [B,N]
 
-    loss_per = loss_per * mask                        # [B,N]
-
-    return loss_per.sum() / mask.sum()
+    return loss_per.sum() / mask_target.sum()
 

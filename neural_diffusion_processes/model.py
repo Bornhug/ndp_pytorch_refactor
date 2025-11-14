@@ -28,7 +28,7 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 
     if mask is not None:
         # mask is broadcastable to (..., 1, S_q, S_k)
-        scaled_attention_logits = scaled_attention_logits + mask
+        scaled_attention_logits += mask * -1e9
 
     attention_weights = F.softmax(scaled_attention_logits, dim=-1)
     output = torch.einsum("...qk,...kd->...qd", attention_weights, v)
@@ -71,7 +71,7 @@ class MultiHeadAttention(nn.Module):
         pair = (mask_q + mask_k).clamp(max=1.0)        # (..., S, S) in {0,1}
         pair = pair.unsqueeze(-3)                      # (..., 1, S, S) for heads
         # Convert to additive logits mask
-        return pair * (-1e9)
+        return pair
 
     def forward(self, v, k, q, mask=None, kv_mask=None):
         # q, k, v : [..., seq_len, d_model]
@@ -89,20 +89,15 @@ class MultiHeadAttention(nn.Module):
         if (mask is not None) and (kv_mask is not None):
             raise ValueError("Provide either mask (self) or kv_mask (cross), not both.")
         if mask is not None:
-            # self-attention style mask where q_len == k_len
-            q_len = q.size(-2)
-            k_len = k.size(-2)
-            if q_len != k_len:
-                raise ValueError("Self-attn mask expects equal q_len and k_len.")
-            add_mask = self._build_pair_mask(mask, q_len, k_len)
+            mask = self._build_pair_mask(mask)
         elif kv_mask is not None:
             # kv_mask: (..., S_k) with 1 for masked positions
             if kv_mask.dim() == 1:
                 kv_mask = kv_mask.unsqueeze(0)  # [1, S_k]
             # Expand to (..., 1, S_q, S_k)
-            add_mask = kv_mask[..., None, :].unsqueeze(-3) * (-1e9)
+            mask = kv_mask[..., None, :].unsqueeze(-3)
 
-        scaled_attention = self.attention(q, k, v, add_mask)
+        scaled_attention = self.attention(q, k, v, mask)
         scaled_attention = rearrange(
             scaled_attention,
             "... num_heads seq_len depth -> ... seq_len (num_heads depth)",
