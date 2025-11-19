@@ -1,10 +1,10 @@
 from typing import Protocol, Tuple
 
-import jax
-import jax.numpy as jnp
+import process
+import process.numpy as jnp
 from check_shapes import check_shapes
 
-from .types import Batch, Rng, ndarray
+from neural_diffusion_processes.types import Batch, Rng, ndarray
 
 
 class EpsModel(Protocol):

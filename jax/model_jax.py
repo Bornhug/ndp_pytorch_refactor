@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import haiku as hk
-import jax
-import jax.numpy as jnp
+from process import jax, jax as jnp
 from check_shapes import check_shape as cs
 from check_shapes import check_shapes
 from einops import rearrange, reduce

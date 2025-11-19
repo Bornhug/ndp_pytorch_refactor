@@ -4,14 +4,14 @@ from typing import Tuple, List, Callable, Mapping, Optional
 import abc
 from dataclasses import dataclass
 import gpjax.kernels as jaxkern
-import jax
+import process
 import gpjax
-import jax.numpy as jnp
+import process.numpy as jnp
 from jaxtyping import Float, Array
 import distrax
 from gpjax import Prior
 
-import jax
+import process
 
 from neural_diffusion_processes.types import Batch
 
