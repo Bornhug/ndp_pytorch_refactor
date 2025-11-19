@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 
@@ -44,11 +44,12 @@ class Config:
     num_epochs: int = 250
     samples_per_epoch: int = int(2**14)
     loss_type: str = "l1"
-    eval: EvalConfig = EvalConfig()
-    network: NetworkConfig = NetworkConfig()
-    schedule: DiffusionConfig = DiffusionConfig()
-    diffusion: DiffusionConfig = DiffusionConfig()
-    optimizer: OptimizerConfig = OptimizerConfig()
+    device: str = "cuda"
+    eval: EvalConfig = field(default_factory=EvalConfig)
+    network: NetworkConfig = field(default_factory=NetworkConfig)
+    schedule: DiffusionConfig = field(default_factory=DiffusionConfig)
+    diffusion: DiffusionConfig = field(default_factory=DiffusionConfig)
+    optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
 
     restore: str = ""
 
