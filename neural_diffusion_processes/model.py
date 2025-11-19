@@ -55,7 +55,7 @@ class MultiHeadAttention(nn.Module):
         self.wv = nn.Linear(d_model, d_model)
         self.dense = nn.Linear(d_model, d_model)
 
-    def _build_pair_mask(self, mask, q_len, k_len):
+    def _build_pair_mask(self, mask):
         """
         Turn a vector mask (..., S) into a pair mask (..., 1, S_q, S_k)
         for the self-attn case where S_q == S_k.
@@ -170,6 +170,14 @@ class BiDimensionalAttentionBlock(nn.Module):
                 y_c_meanN = y_c.mean(dim=1, keepdim=True)  # [B,1,D,2H]
 
             # D-axis cross-attn (targets query, context keys/values aggregated over N_C)
+            '''
+                If we pass kv_mask = mask_context, 
+                (1) mask_context = 1 (All context are masked), then y_c_meanN is 0 matrix.
+                    then s = q * k_T = 0. Cross Attention has no use. No need to explicitly mask context.
+                (2) mask_context = 0 (No context are masked), then it is equivalent to kv_mask = None;
+                (3) some mask_context = 1 , some = 0, then, y_c_meanN only encodes the unmasked context to dim=1.
+                    So passing only y_c_meanN is enough. Setting kv_mask = None is not necessary.
+            '''
             y_cross_d = self.mha_d_cross(v=y_c_meanN, k=y_c_meanN, q=y_t, kv_mask=None)  # [B,N_T,D,2H]
 
             # N-axis cross-attn (targets query, context keys/values along N_C)

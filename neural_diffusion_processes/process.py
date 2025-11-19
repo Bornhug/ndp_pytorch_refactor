@@ -3,25 +3,12 @@
 # ============================================================
 
 from __future__ import annotations
-from typing import Protocol, Tuple
+from typing import Tuple
 import math
 import torch
 import torch.nn.functional as F
 
-# ---------- protocol for the ε-network -------------------------------------
-class EpsModel(Protocol):  # Bidimentional model
-    def __call__(self,
-                 t: torch.Tensor,        # scalar int64        []
-                 y_target: torch.Tensor,       # noisy targets       [N, y_dim]
-                 x_target: torch.Tensor,        # inputs              [N, x_dim]
-                 mask: torch.Tensor,     # 1 if "missing"      [N]
-                 *,
-                 y_context:torch.Tensor,
-                 x_context: torch.Tensor,
-                 mask_context: torch.Tensor,
-                 key: torch.Generator   # for dropout etc.
-                 ) -> torch.Tensor:      # predicted noise     [N, y_dim]
-        ...
+from .model import BiDimensionalAttentionModel
 
 
 # ---------- helpers ---------------------------------------------------------
@@ -84,7 +71,7 @@ class GaussianDiffusion:
 
     # ---------------------------------------------------------------- forward
     def forward(self,
-                key: torch.Generator,  # a random seed class
+                key: torch.Generator | None,  # kept for API compatibility
                 y0: torch.Tensor,
                 t:  torch.Tensor
                 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -93,13 +80,15 @@ class GaussianDiffusion:
             y_t = √ᾱ_t y0 + √(1-ᾱ_t) ε
         """
         m, v   = self.pt0(y0, t)
-        noise = torch.randn(y0.shape, dtype=y0.dtype, device=y0.device, generator=key)
+        # Use global RNG on the same device as y0 to avoid
+        # device mismatches between generator and tensors.
+        noise = torch.randn(y0.shape, dtype=y0.dtype, device=y0.device)
         yt     = m + torch.sqrt(v) * noise
         return yt, noise # [N, y_dim]
 
     # -------------------------------------------------- single reverse step
     def ddpm_backward_step(self,
-                           key: torch.Generator,
+                           key: torch.Generator | None,
                            noise: torch.Tensor,  # ε̂_θ [N, y_dim]
                            yt:   torch.Tensor,   # [N, y_dim]
                            t:    torch.Tensor    # Scalar []
@@ -130,7 +119,7 @@ class GaussianDiffusion:
 
         z = torch.zeros_like(yt)
         if t.item() > 0:
-            z = torch.randn(yt.shape, dtype=yt.dtype, device=yt.device, generator=key)
+            z = torch.randn(yt.shape, dtype=yt.dtype, device=yt.device)
 
         a = 1.0 / torch.sqrt(α_t)
         b = β_t / torch.sqrt(1.0 - ᾱ_t)
@@ -155,36 +144,43 @@ class GaussianDiffusion:
 
 
     def sample(self,
-               key: torch.Generator,
+               key: torch.Generator | None,
                x:   torch.Tensor,           # [B, x_dim]
                mask: torch.Tensor | None,
                *,
                x_context: torch.Tensor | None,
                y_context: torch.Tensor | None,
                mask_context: torch.Tensor | None,
-               model_fn: EpsModel,
+               model: BiDimensionalAttentionModel,
                output_dim: int = 1
                ) -> torch.Tensor:
         """
         Draw *unconditional* sample y(x) from learned reverse process.
+        Assumes x has shape [B, N, D] and returns y of shape [B, N, output_dim].
         """
-        B      = x.size(0)
-        y = torch.randn(B, output_dim, device=self.device, dtype=self.dtype,
-                        generator=key)             # initial y_T [B, T]
+        B, N, _ = x.shape
+        y = torch.randn(B, N, output_dim, device=self.device, dtype=self.dtype, generator=key)  # initial y_T [B, N, T]
 
-        if mask is None:
-            mask = torch.zeros(B, device=self.device, dtype=self.dtype) # [B]
+        # if mask is None:
+        #     mask = torch.zeros(B, device=self.device, dtype=self.dtype) # [B]
+        #
+        # # TODO: zeros or ones?
+        # if mask_context is None:
+        #     mask_context = torch.ones (len(x_context),device=self.device, dtype=self.dtype)  # 1 ⇒ context
 
-        # TODO: zeros or ones?
-        if mask_context is None:
-            mask_context = torch.ones (len(x_context),device=self.device, dtype=self.dtype)  # 1 ⇒ context
-
-        for t in reversed(range(len(self.betas))):
-            # TODO: start from T or T-1?
-            noise_hat = model_fn(t, y, x, mask,
-                                 x_context=x_context, y_context=y_context,
-                                 mask_context=mask_context, key=key)
-            y = self.ddpm_backward_step(key, noise_hat, y, t)
+        for t_int in reversed(range(len(self.betas))):
+            # Shared timestep across the batch; use a scalar tensor.
+            t_tensor = torch.tensor(t_int, device=self.device, dtype=torch.long)
+            noise_hat = model(
+                x_tgt=x,
+                y_tgt=y,
+                t=t_tensor,
+                mask_tgt=mask,
+                x_context=x_context,
+                y_context=y_context,
+                mask_context=mask_context,
+            )
+            y = self.ddpm_backward_step(key, noise_hat, y, t_tensor)
         return y
 
 
@@ -213,7 +209,9 @@ def stratified_timesteps(
 
     # Sample one offset in [0, step) for each batch element
     # shape: [B]
-    t = torch.rand(batch_size, device=device, generator=generator) * step
+    # Use global RNG on the requested device. We ignore the optional
+    # generator here to avoid device mismatches.
+    t = torch.rand(batch_size, device=device) * step
 
     # Shift each sample into a different bin:
     # bin 0: [0*step, 1*step)
@@ -230,7 +228,7 @@ def stratified_timesteps(
 
 
 def loss(process: GaussianDiffusion,
-         network: EpsModel,
+         model: BiDimensionalAttentionModel,
          batch,
          key: torch.Generator,
          *,
@@ -257,12 +255,15 @@ def loss(process: GaussianDiffusion,
 
     mask_target = batch.mask_target if batch.mask_target is not None else torch.zeros(B, N, device=device)
 
-    # Run model
-    noise_hat = network(t, yt, batch.x_target, batch.mask_target,
+    # Run model (BiDimensionalAttentionModel)
+    noise_hat = model(
+        x_tgt=batch.x_target,
+        y_tgt=yt,
+        t=t.to(batch.x_target.device).view(B),
+        mask_tgt=mask_target.to(batch.x_target.device),
         x_context=batch.x_context,
         y_context=batch.y_context,
         mask_context=batch.mask_context,
-        key=key
     )
 
     # Per-point loss
@@ -270,5 +271,7 @@ def loss(process: GaussianDiffusion,
 
     loss_per = loss_per * (1-mask_target)                    # [B,N]
 
-    return loss_per.sum() / mask_target.sum()
+    unmasked_count = (1 - mask_target).sum()
+
+    return loss_per.sum() / unmasked_count
 
