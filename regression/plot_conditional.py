@@ -108,8 +108,13 @@ def plot_samples(
     yc_np = y_context.cpu().numpy() if y_context is not None else None
     mc_np = mask_context.cpu().numpy() if mask_context is not None else None
 
+    # Sort by x so curves look like smooth GP functions
+    order = np.argsort(x_np)
+    x_np = x_np[order]
+    y_true_np = y_true_np[order]
+
     # samples: [S,N] (already squeezed before calling)
-    s_np = samples.cpu().numpy()
+    s_np = samples.cpu().numpy()[:, order]  # reorder along N
     mean = s_np.mean(axis=0)
     var = s_np.var(axis=0)
 
