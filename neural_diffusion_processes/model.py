@@ -11,13 +11,17 @@ def timestep_embedding(t: torch.Tensor, embedding_dim: int, max_positions: int =
         t = t.unsqueeze(0)  # make scalar into [1]
 
     half_dim = embedding_dim // 2
+    # Ensure half_dim > 1 to avoid division by zero
+    if half_dim <= 1:
+        half_dim = 2
     emb = math.log(max_positions) / (half_dim - 1)
     emb = torch.exp(torch.arange(half_dim, dtype=torch.float32, device=t.device) * -emb)
-    emb = t[:, None] * emb[None, :]
+    emb = t.float()[:, None] * emb[None, :]
     emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1)
     if embedding_dim % 2 == 1:  # zero pad
         emb = F.pad(emb, (0, 1))
-    return emb  # [B, H]
+    # Ensure output has the correct dimension
+    return emb[:, :embedding_dim]  # [B, H]
 
 
 def scaled_dot_product_attention(q, k, v, mask=None):
@@ -28,8 +32,10 @@ def scaled_dot_product_attention(q, k, v, mask=None):
 
     if mask is not None:
         # mask is broadcastable to (..., 1, S_q, S_k)
-        scaled_attention_logits += mask * -1e9
+        scaled_attention_logits = scaled_attention_logits + mask * -1e9
 
+    # Clamp logits to prevent overflow in softmax
+    scaled_attention_logits = scaled_attention_logits.clamp(-50, 50)
     attention_weights = F.softmax(scaled_attention_logits, dim=-1)
     output = torch.einsum("...qk,...kd->...qd", attention_weights, v)
     return output
@@ -204,24 +210,45 @@ class BiDimensionalAttentionBlock(nn.Module):
         return (s_tgt + residual) / math.sqrt(2.0), skip
 
 
+
+
 class AttentionBlock(nn.Module):
-    def __init__(self, hidden_dim, num_heads, sparse=False):
+    """
+    Flat per-point attention over N with optional cross-attention from context.
+    No D-axis. Shapes are [B, N, H] for both targets and context.
+    """
+    def __init__(self, hidden_dim: int, num_heads: int, sparse: bool = False):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.linear_t = nn.Linear(hidden_dim, hidden_dim)
-        self.mha_d = MultiHeadAttention(2 * hidden_dim, num_heads, sparse=sparse)
+        # N-axis attention modules
+        self.mha_self = MultiHeadAttention(2 * hidden_dim, num_heads, sparse=sparse)
+        self.mha_cross = MultiHeadAttention(2 * hidden_dim, num_heads, sparse=sparse)
+        self.gamma_n = nn.Parameter(torch.tensor(0.0))
 
-    def forward(self, s, t):
-        # s: [B, N, D, hidden_dim]
-        t = self.linear_t(t)[:, None, :]
-        y = s + t
-        y = torch.cat([y, y], dim=-1)
-        y_att_d = self.mha_d(y, y, y)
-        residual, skip = torch.chunk(y_att_d, 2, dim=-1)
+    def forward(self, s_tgt, t, *, mask_tgt=None, s_ctx=None, mask_context=None):
+        # s_tgt: [B,N,H]; s_ctx: [B,Nc,H]
+        t = self.linear_t(t)[:, None, :]           # [B,1,H]
+        y = s_tgt + t                              # [B,N,H]
+        y = torch.cat([y, y], dim=-1)              # [B,N,2H]
+
+        # Self-attention over N (image AttentionModel does not use masks here)
+        y_self = self.mha_self(y, y, y)            # [B,N,2H]
+
+        # Cross-attention over N (ignore masks here as well)
+        if (s_ctx is not None) and (s_ctx.size(1) > 0):
+            y_c = s_ctx + t                        # [B,Nc,H]
+            y_c = torch.cat([y_c, y_c], dim=-1)    # [B,Nc,2H]
+            y_cross = self.mha_cross(v=y_c, k=y_c, q=y)  # [B,N,2H]
+            y = y_self + torch.tanh(self.gamma_n) * y_cross
+        else:
+            y = y_self
+
+        residual, skip = torch.chunk(y, 2, dim=-1)   # [B,N,H] x2
         residual = F.gelu(residual)
         skip = F.gelu(skip)
-        return (s + residual) / math.sqrt(2.0), skip
+        return (s_tgt + residual) / math.sqrt(2.0), skip
 
 
 class BiDimensionalAttentionModel(nn.Module):
@@ -296,38 +323,52 @@ class BiDimensionalAttentionModel(nn.Module):
         eps = self.output_linear(eps)                         # [B,N_T,1]
         return eps
 
-
 class AttentionModel(nn.Module):
-    def __init__(self, n_layers, hidden_dim, num_heads, output_dim, sparse=False, init_zero=True):
+    """
+    Flat N-axis AttentionModel (no D), with N-axis self-attn and optional N-axis cross-attn.
+    Follows bidimensional flow but without D expansion and without mean over D.
+    """
+    def __init__(self, n_layers, hidden_dim, num_heads, output_dim, *, in_dim: int = 3, sparse: bool = False, init_zero: bool = True):
         super().__init__()
-        self.n_layers = n_layers
-        self.hidden_dim = hidden_dim
-        self.num_heads = num_heads
-        self.output_dim = output_dim
+        self.n_layers = int(n_layers)
+        self.hidden_dim = int(hidden_dim)
+        self.num_heads = int(num_heads)
+        self.output_dim = int(output_dim)
 
-        self.input_linear = nn.Linear(hidden_dim, hidden_dim)
-        self.layers = nn.ModuleList(
-            [AttentionBlock(hidden_dim, num_heads, sparse=sparse) for _ in range(n_layers)]
-        )
-        self.mid = nn.Linear(self.hidden_dim, self.hidden_dim)
-        self.output_linear = nn.Linear(hidden_dim, output_dim)
+        self.input_linear = nn.Linear(int(in_dim), self.hidden_dim)
+        self.layers = nn.ModuleList([AttentionBlock(self.hidden_dim, self.num_heads, sparse=sparse) for _ in range(self.n_layers)])
+        self.proj_eps = nn.Linear(hidden_dim, hidden_dim)
+        self.output_linear = nn.Linear(hidden_dim, self.output_dim)
         if init_zero:
             nn.init.zeros_(self.output_linear.weight)
             nn.init.zeros_(self.output_linear.bias)
 
-    def forward(self, x, y, t, mask=None):
-        # x : [B, N, D_in]  y : [B, N, D_out]  t: [B, 1]
-        x = torch.cat([x, y], dim=-1)              # [B, N, D_in + D_out]
-        x = F.gelu(self.input_linear(x))           # [B, N, H]
-        t_embedding = timestep_embedding(t, self.hidden_dim)  # [B, H]
+    def forward(self, x_tgt, y_tgt, t, mask_tgt=None, *, x_context=None, y_context=None, mask_context=None):
+        # Per-point projection from concat([x_tgt, y_tgt])
+        if x_tgt.ndim == 2:
+            x_tgt = x_tgt.unsqueeze(0)
+        if y_tgt.ndim == 2:
+            y_tgt = y_tgt.unsqueeze(0)
+        h_tgt = torch.cat([x_tgt, y_tgt], dim=-1)        # [B,N,in_dim]
+        h_tgt = F.gelu(self.input_linear(h_tgt))         # [B,N,H]
+
+        h_ctx = None
+        if (x_context is not None) and (y_context is not None):
+            if x_context.ndim == 2:
+                x_context = x_context.unsqueeze(0)
+            if y_context.ndim == 2:
+                y_context = y_context.unsqueeze(0)
+            h_ctx = torch.cat([x_context, y_context], dim=-1)   # [B,Nc,in_dim]
+            h_ctx = F.gelu(self.input_linear(h_ctx))            # [B,Nc,H]
+
+        t_embedding = timestep_embedding(t, self.hidden_dim)    # [B,H]
 
         skip = None
         for layer in self.layers:
-            x, skip_connection = layer(x, t_embedding)        # [B, N, H]
-            skip = skip_connection if skip is None else skip + skip_connection
+            h_tgt, s = layer(h_tgt, t_embedding, mask_tgt=mask_tgt, s_ctx=h_ctx, mask_context=mask_context)
+            skip = s if skip is None else skip + s
 
-        eps = skip / math.sqrt(self.n_layers)      # [B, N, H]
-        eps = F.gelu(self.mid(eps))                # [B, N, H]
-        eps = self.output_linear(eps)              # [B, N, output_dim]
+        eps = skip / math.sqrt(self.n_layers)                   # [B,N,H]
+        eps = F.gelu(self.proj_eps(eps))                        # [B,N,H]
+        eps = self.output_linear(eps)                           # [B,N,output_dim]
         return eps
-

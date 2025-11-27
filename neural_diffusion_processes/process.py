@@ -77,13 +77,15 @@ class GaussianDiffusion:
                 ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Sample y_t and return the exact noise ε so that
-            y_t = √ᾱ_t y0 + √(1-ᾱ_t) ε
+            y_t = √ᾱ_t y0 + √(1-ᾱ_t) ε
         """
         m, v   = self.pt0(y0, t)
         # Use global RNG on the same device as y0 to avoid
         # device mismatches between generator and tensors.
         noise = torch.randn(y0.shape, dtype=y0.dtype, device=y0.device)
-        yt     = m + torch.sqrt(v) * noise
+        # Clamp variance to prevent sqrt of negative or very small numbers
+        v_clamped = v.clamp(min=1e-8)
+        yt     = m + torch.sqrt(v_clamped) * noise
         return yt, noise # [N, y_dim]
 
     # -------------------------------------------------- single reverse step
@@ -272,6 +274,10 @@ def loss(process: GaussianDiffusion,
     loss_per = loss_per * (1-mask_target)                    # [B,N]
 
     unmasked_count = (1 - mask_target).sum()
+    
+    # Prevent division by zero
+    if unmasked_count == 0:
+        return torch.tensor(0.0, device=device, dtype=loss_per.dtype)
 
-    return loss_per.sum() / unmasked_count
+    return loss_per.sum() / unmasked_count.clamp(min=1.0)
 
