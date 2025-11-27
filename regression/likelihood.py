@@ -16,43 +16,6 @@ from tqdm import tqdm
 from data import _DATASET_FACTORIES, _load_npz, GPFunctionalDistribution, BaselineGP
 
 
-def stable_gaussian_log_prob(
-    mean: torch.Tensor,
-    cov: torch.Tensor,
-    y: torch.Tensor,
-    base_jitter: float = 1e-6,
-    max_tries: int = 5,
-) -> torch.Tensor:
-    """
-    Numerically stable log N(y | mean, cov) using Cholesky with adaptive jitter.
-    """
-    n = cov.shape[0]
-    eye = torch.eye(n, device=cov.device, dtype=cov.dtype)
-
-    jitter = base_jitter
-    L = None
-    for _ in range(max_tries):
-        try:
-            cov_sym = 0.5 * (cov + cov.T)
-            L = torch.linalg.cholesky(cov_sym + jitter * eye)
-            break
-        except RuntimeError:
-            jitter *= 10.0
-
-    if L is None:
-        raise RuntimeError("Cholesky failed even with large jitter in stable_gaussian_log_prob.")
-
-    diff = (y - mean).reshape(-1)  # [n]
-    solve = torch.cholesky_solve(diff.unsqueeze(-1), L).squeeze(-1)
-    maha = (diff * solve).sum()
-
-    logdet = 2.0 * torch.log(torch.diag(L)).sum()
-    dim = mean.numel()
-    log2pi = dim * math.log(2.0 * math.pi)
-
-    return -0.5 * (maha + logdet + log2pi)
-
-
 class BaseLikelihood:
     """
     Holds shared configuration (dataset name, input_dim, jitter) and GP builder.
@@ -126,25 +89,17 @@ class GPLikelihoodEvaluator(BaseLikelihood):
         else:
             fd = BaselineGP(self.gp.kernel, self.gp.params)
 
-        B = self.x_target.shape[0]
+        B, N = self.x_target.shape[:2]
         ll_per_example: list[torch.Tensor] = []
         for b in tqdm(range(B), desc="Baseline GP", leave=False):
-            mask_t = self.mask_target[b] if self.mask_target is not None else None
-            if mask_t is not None:
-                keep_t = mask_t == 0
-                num_t = int(keep_t.sum().item())
-                if num_t == 0:
-                    continue
-            else:
-                num_t = self.x_target.shape[1]
-
+            num_t = N
             ll = fd.log_likelihood(
                 self.x_context[b],
                 self.y_context[b],
                 self.x_target[b],
                 self.y_target[b],
                 mask_context=self.mask_context[b] if self.mask_context is not None else None,
-                mask_target=mask_t,
+                mask_target=None,
                 jitter=self.jitter,
             )
             ll_per_example.append(torch.as_tensor(ll / num_t, dtype=torch.float32))
@@ -183,14 +138,7 @@ class GPLikelihoodEvaluator(BaseLikelihood):
 
         ll_per_example: list[torch.Tensor] = []
         for b in tqdm(range(B), desc="Method 1 GP ll", leave=False):
-            mask_t = self.mask_target[b] if self.mask_target is not None else None
-            if mask_t is not None:
-                keep_t = mask_t == 0
-                num_t = int(keep_t.sum().item())
-                if num_t == 0:
-                    continue
-            else:
-                num_t = N
+            num_t = N
 
             ll_samples: list[float] = []
             for s in range(S):
@@ -202,7 +150,7 @@ class GPLikelihoodEvaluator(BaseLikelihood):
                     self.x_target[b],
                     y_s,
                     mask_train=self.mask_context[b] if self.mask_context is not None else None,
-                    mask_test=mask_t,
+                    mask_test=None,
                     jitter=self.jitter,
                 )
                 ll_samples.append(ll / num_t)
@@ -248,18 +196,9 @@ class GPLikelihoodEvaluator(BaseLikelihood):
 
         ll_per_example: list[torch.Tensor] = []
         for b in tqdm(range(B), desc="Method 2 GP ll", leave=False):
-            mask_t = self.mask_target[b] if self.mask_target is not None else None
-            if mask_t is not None:
-                keep_t = mask_t == 0
-                num_t = int(keep_t.sum().item())
-                if num_t == 0:
-                    continue
-                s_b = samples[:, b, :][:, keep_t]  # [S,num_t]
-                y_true = y_true_full[b, keep_t]    # [num_t]
-            else:
-                num_t = N
-                s_b = samples[:, b, :]             # [S,N]
-                y_true = y_true_full[b]            # [N]
+            num_t = N
+            s_b = samples[:, b, :]             # [S,N]
+            y_true = y_true_full[b]            # [N]
 
             mean = s_b.mean(dim=0)  # [num_t]
             if S > 1:
@@ -269,7 +208,8 @@ class GPLikelihoodEvaluator(BaseLikelihood):
                 cov = torch.zeros(num_t, num_t, device=s_b.device, dtype=s_b.dtype)
             cov = cov + torch.eye(num_t, device=s_b.device, dtype=s_b.dtype) * self.jitter
 
-            ll = stable_gaussian_log_prob(mean, cov, y_true, base_jitter=self.jitter)
+            mvn = torch.distributions.MultivariateNormal(mean, covariance_matrix=cov)
+            ll = mvn.log_prob(y_true)
             ll_per_example.append(ll / num_t)
 
         if not ll_per_example:

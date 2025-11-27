@@ -6,6 +6,8 @@ import pathlib
 import random
 import string
 from dataclasses import asdict
+import argparse
+import sys
 
 import numpy as np
 import torch
@@ -13,6 +15,11 @@ from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 import wandb
+
+# Ensure project root (one level up from regression/) is on PYTHONPATH for local imports
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
 
 from config import Config
 from neural_diffusion_processes.model import BiDimensionalAttentionModel
@@ -158,7 +165,27 @@ def batch_to_device(batch: Batch, device: torch.device) -> Batch:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Train NDP regression model.")
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Dataset name (e.g., matern, se). Defaults to Config.dataset.",
+    )
+    parser.add_argument(
+        "--input-dim",
+        type=int,
+        default=None,
+        help="Input dimensionality. Defaults to Config.input_dim.",
+    )
+    args = parser.parse_args()
+
     config = Config()
+    if args.dataset is not None:
+        config.dataset = args.dataset
+    if args.input_dim is not None:
+        config.input_dim = args.input_dim
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     exp_dir = get_experiment_dir(config)
