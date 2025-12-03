@@ -1,0 +1,20 @@
+1. loss_cls (vanilla, add MLP, share backbone)
+6. use -1,1 for y: (1. use scalar, 2. use one hot [1,-1]  and [-1, 1])  Y
+8. use CLIP for input normalization
+9. Check tensor initialization
+3. modify preprocessing, mimic nanoTabPFN  X
+2. loss exponential family
+4. add cross attention / test conditional Model
+7. use multinominal distribution instead of gaussian
+
+
+
+For nanoTabPFN_original2, can you do these:
+1.use one-hot embedding instead of scalar
+2.check if the number of epoches is 50 instead of 250. And the warmup and decay should be adjusted accordingly
+3. check if for loss function used in training, we predict noise with respect to all y, instead of just y target
+4. check if for conditional sampling used in evaluation, we use repaint algorithm so that our noise prediction model predict noise for y all, but we extract y target for next iteration
+
+for nanoTabPFN_version05, what num of workers for GPU we are using? Is it possible to make it faster?
+
+for nanoTabPFN_original2, we have checkpoint  nanoTabPFN_original2\wandb\run-20251129_153723-q34ypxs9\files\model_step_460000.pt , is it possible for us to pick up the training from there? Don't modify code yet
