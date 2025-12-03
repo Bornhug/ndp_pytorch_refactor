@@ -1,0 +1,1 @@
+Add loss_cls to loss function in process.py
