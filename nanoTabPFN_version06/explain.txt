@@ -1,0 +1,3 @@
+1. Use symmetric one hot for y labels
+2. Adjust the learning rate
+3. After using eps prediction to reconstruct z0, use Dense Layer 
