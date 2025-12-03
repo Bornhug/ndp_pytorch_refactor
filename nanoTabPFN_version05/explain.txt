@@ -1,0 +1,2 @@
+Here we treat y label as symmetric one-hot [-1,1] and [1,-1] instead of one hot [0,1] and [1,0].
+run-20251201_193101-mrqjejg6 messed up the learning rate
