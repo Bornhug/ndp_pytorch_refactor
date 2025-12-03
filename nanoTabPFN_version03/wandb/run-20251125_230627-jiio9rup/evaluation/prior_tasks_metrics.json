@@ -1,0 +1,998 @@
+{
+  "run_dir": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup",
+  "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5",
+  "checkpoints": [
+    {
+      "step": 10000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_10000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8125,
+          "balanced_accuracy": 0.5260416666666667,
+          "roc_auc": 0.5911458333333333
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5803571428571429,
+          "balanced_accuracy": 0.5340909090909091,
+          "roc_auc": 0.5147058823529412
+        },
+        "prior_task_80935": {
+          "accuracy": 0.6071428571428571,
+          "balanced_accuracy": 0.5760026963262554,
+          "roc_auc": 0.540613414223121
+        },
+        "prior_task_92348": {
+          "accuracy": 0.6964285714285714,
+          "balanced_accuracy": 0.43820224719101125,
+          "roc_auc": 0.3795798729848559
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5089285714285714,
+          "balanced_accuracy": 0.48525641025641025,
+          "roc_auc": 0.4775641025641026
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 20000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_20000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8303571428571429,
+          "balanced_accuracy": 0.5104166666666667,
+          "roc_auc": 0.39973958333333337
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5446428571428571,
+          "balanced_accuracy": 0.4565508021390374,
+          "roc_auc": 0.5080213903743316
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5982142857142857,
+          "balanced_accuracy": 0.5205594876980115,
+          "roc_auc": 0.4967981125716212
+        },
+        "prior_task_92348": {
+          "accuracy": 0.5803571428571429,
+          "balanced_accuracy": 0.3651685393258427,
+          "roc_auc": 0.38837322911577915
+        },
+        "prior_task_255183": {
+          "accuracy": 0.41964285714285715,
+          "balanced_accuracy": 0.4185897435897436,
+          "roc_auc": 0.46474358974358976
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 30000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_30000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8392857142857143,
+          "balanced_accuracy": 0.515625,
+          "roc_auc": 0.5690104166666666
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5089285714285714,
+          "balanced_accuracy": 0.4512032085561497,
+          "roc_auc": 0.4528743315508021
+        },
+        "prior_task_80935": {
+          "accuracy": 0.4642857142857143,
+          "balanced_accuracy": 0.517020559487698,
+          "roc_auc": 0.4897202561509943
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8214285714285714,
+          "balanced_accuracy": 0.6619443087445042,
+          "roc_auc": 0.6360527601367855
+        },
+        "prior_task_255183": {
+          "accuracy": 0.6160714285714286,
+          "balanced_accuracy": 0.607051282051282,
+          "roc_auc": 0.5429487179487179
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 40000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_40000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8303571428571429,
+          "balanced_accuracy": 0.5104166666666667,
+          "roc_auc": 0.607421875
+        },
+        "prior_task_153339": {
+          "accuracy": 0.4375,
+          "balanced_accuracy": 0.4364973262032086,
+          "roc_auc": 0.45086898395721925
+        },
+        "prior_task_80935": {
+          "accuracy": 0.42857142857142855,
+          "balanced_accuracy": 0.47050893158072127,
+          "roc_auc": 0.43040107853050213
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8214285714285714,
+          "balanced_accuracy": 0.5813385442110406,
+          "roc_auc": 0.583781143136297
+        },
+        "prior_task_255183": {
+          "accuracy": 0.6517857142857143,
+          "balanced_accuracy": 0.6673076923076923,
+          "roc_auc": 0.6884615384615385
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 50000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_50000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.5520833333333333,
+          "roc_auc": 0.5813802083333334
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5446428571428571,
+          "balanced_accuracy": 0.5207219251336899,
+          "roc_auc": 0.5207219251336899
+        },
+        "prior_task_80935": {
+          "accuracy": 0.6071428571428571,
+          "balanced_accuracy": 0.5365689248399056,
+          "roc_auc": 0.5278058645096056
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8303571428571429,
+          "balanced_accuracy": 0.6191988275525159,
+          "roc_auc": 0.6111382510991695
+        },
+        "prior_task_255183": {
+          "accuracy": 0.7232142857142857,
+          "balanced_accuracy": 0.7211538461538461,
+          "roc_auc": 0.751923076923077
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 60000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_60000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8035714285714286,
+          "balanced_accuracy": 0.546875,
+          "roc_auc": 0.4830729166666667
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5089285714285714,
+          "balanced_accuracy": 0.4832887700534759,
+          "roc_auc": 0.42947860962566853
+        },
+        "prior_task_80935": {
+          "accuracy": 0.4642857142857143,
+          "balanced_accuracy": 0.534546680148298,
+          "roc_auc": 0.4587125042130098
+        },
+        "prior_task_92348": {
+          "accuracy": 0.9017857142857143,
+          "balanced_accuracy": 0.8092330239374694,
+          "roc_auc": 0.8612603810454323
+        },
+        "prior_task_255183": {
+          "accuracy": 0.48214285714285715,
+          "balanced_accuracy": 0.5051282051282051,
+          "roc_auc": 0.5381410256410255
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 70000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_70000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.5982142857142857,
+          "balanced_accuracy": 0.5052083333333333,
+          "roc_auc": 0.49544270833333337
+        },
+        "prior_task_153339": {
+          "accuracy": 0.375,
+          "balanced_accuracy": 0.42112299465240643,
+          "roc_auc": 0.39104278074866305
+        },
+        "prior_task_80935": {
+          "accuracy": 0.42857142857142855,
+          "balanced_accuracy": 0.49679811257162115,
+          "roc_auc": 0.4674755645433097
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8303571428571429,
+          "balanced_accuracy": 0.6191988275525159,
+          "roc_auc": 0.5178309721543722
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5267857142857143,
+          "balanced_accuracy": 0.5467948717948717,
+          "roc_auc": 0.521474358974359
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 80000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_80000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8482142857142857,
+          "balanced_accuracy": 0.4947916666666667,
+          "roc_auc": 0.501953125
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5892857142857143,
+          "balanced_accuracy": 0.5053475935828877,
+          "roc_auc": 0.5665106951871658
+        },
+        "prior_task_80935": {
+          "accuracy": 0.6071428571428571,
+          "balanced_accuracy": 0.5102797438490058,
+          "roc_auc": 0.5001685203909674
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8125,
+          "balanced_accuracy": 0.5595994137762579,
+          "roc_auc": 0.583781143136297
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.5487179487179488,
+          "roc_auc": 0.5980769230769232
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 90000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_90000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8482142857142857,
+          "balanced_accuracy": 0.5208333333333333,
+          "roc_auc": 0.4251302083333333
+        },
+        "prior_task_153339": {
+          "accuracy": 0.6160714285714286,
+          "balanced_accuracy": 0.571524064171123,
+          "roc_auc": 0.607620320855615
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5089285714285714,
+          "balanced_accuracy": 0.44809571958206945,
+          "roc_auc": 0.4095045500505562
+        },
+        "prior_task_92348": {
+          "accuracy": 0.875,
+          "balanced_accuracy": 0.7117733268197362,
+          "roc_auc": 0.7010258915486077
+        },
+        "prior_task_255183": {
+          "accuracy": 0.4375,
+          "balanced_accuracy": 0.42371794871794877,
+          "roc_auc": 0.4333333333333334
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 100000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_100000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8571428571428571,
+          "balanced_accuracy": 0.6302083333333333,
+          "roc_auc": 0.580078125
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5178571428571429,
+          "balanced_accuracy": 0.5227272727272727,
+          "roc_auc": 0.5544786096256684
+        },
+        "prior_task_80935": {
+          "accuracy": 0.4732142857142857,
+          "balanced_accuracy": 0.4804516346477924,
+          "roc_auc": 0.48769801145938657
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7767857142857143,
+          "balanced_accuracy": 0.5371275036638984,
+          "roc_auc": 0.5246702491450903
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5267857142857143,
+          "balanced_accuracy": 0.5134615384615384,
+          "roc_auc": 0.49391025641025643
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 110000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_110000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.75,
+          "balanced_accuracy": 0.4895833333333333,
+          "roc_auc": 0.5104166666666667
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5803571428571429,
+          "balanced_accuracy": 0.518048128342246,
+          "roc_auc": 0.529077540106952
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5267857142857143,
+          "balanced_accuracy": 0.46697000337040784,
+          "roc_auc": 0.478597910347152
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.558866634098681,
+          "roc_auc": 0.5862237420615535
+        },
+        "prior_task_255183": {
+          "accuracy": 0.6875,
+          "balanced_accuracy": 0.6967948717948718,
+          "roc_auc": 0.6996794871794871
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 120000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_120000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7946428571428571,
+          "balanced_accuracy": 0.4895833333333333,
+          "roc_auc": 0.45182291666666663
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5446428571428571,
+          "balanced_accuracy": 0.5287433155080213,
+          "roc_auc": 0.5447860962566844
+        },
+        "prior_task_80935": {
+          "accuracy": 0.44642857142857145,
+          "balanced_accuracy": 0.5156723963599595,
+          "roc_auc": 0.4641051567239636
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7589285714285714,
+          "balanced_accuracy": 0.49364924279433314,
+          "roc_auc": 0.45530043966780653
+        },
+        "prior_task_255183": {
+          "accuracy": 0.6785714285714286,
+          "balanced_accuracy": 0.6705128205128206,
+          "roc_auc": 0.6538461538461539
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 130000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_130000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8392857142857143,
+          "balanced_accuracy": 0.6197916666666667,
+          "roc_auc": 0.625
+        },
+        "prior_task_153339": {
+          "accuracy": 0.48214285714285715,
+          "balanced_accuracy": 0.4652406417112299,
+          "roc_auc": 0.44886363636363635
+        },
+        "prior_task_80935": {
+          "accuracy": 0.4375,
+          "balanced_accuracy": 0.5040444893832153,
+          "roc_auc": 0.4833164812942366
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8125,
+          "balanced_accuracy": 0.5434782608695652,
+          "roc_auc": 0.5486077186126038
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5446428571428571,
+          "balanced_accuracy": 0.5583333333333333,
+          "roc_auc": 0.5875
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 140000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_140000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7946428571428571,
+          "balanced_accuracy": 0.4635416666666667,
+          "roc_auc": 0.4303385416666667
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.48395721925133695,
+          "roc_auc": 0.46624331550802134
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.4856757667677789,
+          "roc_auc": 0.5025278058645096
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8571428571428571,
+          "balanced_accuracy": 0.6521739130434783,
+          "roc_auc": 0.693209574987787
+        },
+        "prior_task_255183": {
+          "accuracy": 0.7142857142857143,
+          "balanced_accuracy": 0.7012820512820512,
+          "roc_auc": 0.7022435897435897
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 150000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_150000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.5885416666666667,
+          "roc_auc": 0.5625
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.49866310160427807,
+          "roc_auc": 0.4779411764705882
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.4988203572632289,
+          "roc_auc": 0.5284799460734749
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7767857142857143,
+          "balanced_accuracy": 0.4887640449438202,
+          "roc_auc": 0.6057645334636053
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5267857142857143,
+          "balanced_accuracy": 0.542948717948718,
+          "roc_auc": 0.5939102564102564
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 160000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_160000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.5260416666666667,
+          "roc_auc": 0.49609375
+        },
+        "prior_task_153339": {
+          "accuracy": 0.4107142857142857,
+          "balanced_accuracy": 0.4505347593582888,
+          "roc_auc": 0.4331550802139037
+        },
+        "prior_task_80935": {
+          "accuracy": 0.4732142857142857,
+          "balanced_accuracy": 0.48921469497809233,
+          "roc_auc": 0.5089315807212673
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8214285714285714,
+          "balanced_accuracy": 0.5813385442110406,
+          "roc_auc": 0.5803615046409379
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5535714285714286,
+          "balanced_accuracy": 0.5743589743589743,
+          "roc_auc": 0.6451923076923077
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 170000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_170000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7946428571428571,
+          "balanced_accuracy": 0.5416666666666667,
+          "roc_auc": 0.5013020833333334
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5357142857142857,
+          "balanced_accuracy": 0.5855614973262032,
+          "roc_auc": 0.5892379679144385
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5803571428571429,
+          "balanced_accuracy": 0.506066734074823,
+          "roc_auc": 0.5176946410515673
+        },
+        "prior_task_92348": {
+          "accuracy": 0.6428571428571429,
+          "balanced_accuracy": 0.4528578407425501,
+          "roc_auc": 0.47093307278944796
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5089285714285714,
+          "balanced_accuracy": 0.5057692307692307,
+          "roc_auc": 0.48012820512820514
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 180000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_180000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7589285714285714,
+          "balanced_accuracy": 0.4947916666666667,
+          "roc_auc": 0.548828125
+        },
+        "prior_task_153339": {
+          "accuracy": 0.45535714285714285,
+          "balanced_accuracy": 0.5153743315508021,
+          "roc_auc": 0.4996657754010695
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.5820694304010785,
+          "roc_auc": 0.5190428041793057
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.5315095261358085,
+          "roc_auc": 0.5153883732291158
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5625,
+          "balanced_accuracy": 0.5839743589743589,
+          "roc_auc": 0.548397435897436
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 190000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_190000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8303571428571429,
+          "balanced_accuracy": 0.5104166666666667,
+          "roc_auc": 0.43554687500000006
+        },
+        "prior_task_153339": {
+          "accuracy": 0.4375,
+          "balanced_accuracy": 0.4565508021390374,
+          "roc_auc": 0.44852941176470584
+        },
+        "prior_task_80935": {
+          "accuracy": 0.4642857142857143,
+          "balanced_accuracy": 0.517020559487698,
+          "roc_auc": 0.4748904617458713
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.558866634098681,
+          "roc_auc": 0.42940889106008795
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5535714285714286,
+          "balanced_accuracy": 0.5794871794871794,
+          "roc_auc": 0.6032051282051282
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 200000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_200000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.484375,
+          "roc_auc": 0.35807291666666663
+        },
+        "prior_task_153339": {
+          "accuracy": 0.42857142857142855,
+          "balanced_accuracy": 0.4973262032085562,
+          "roc_auc": 0.5584893048128343
+        },
+        "prior_task_80935": {
+          "accuracy": 0.39285714285714285,
+          "balanced_accuracy": 0.4765756656555443,
+          "roc_auc": 0.4381530165149983
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7946428571428571,
+          "balanced_accuracy": 0.5161211529066927,
+          "roc_auc": 0.4572545188080117
+        },
+        "prior_task_255183": {
+          "accuracy": 0.44642857142857145,
+          "balanced_accuracy": 0.46923076923076923,
+          "roc_auc": 0.4708333333333333
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 210000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_210000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.5520833333333333,
+          "roc_auc": 0.5234375
+        },
+        "prior_task_153339": {
+          "accuracy": 0.4375,
+          "balanced_accuracy": 0.464572192513369,
+          "roc_auc": 0.49632352941176466
+        },
+        "prior_task_80935": {
+          "accuracy": 0.41964285714285715,
+          "balanced_accuracy": 0.467644084934277,
+          "roc_auc": 0.4907313784967981
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8035714285714286,
+          "balanced_accuracy": 0.553981436248168,
+          "roc_auc": 0.5661944308744504
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.5794871794871794,
+          "roc_auc": 0.5772435897435897
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 220000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_220000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.4479166666666667,
+          "roc_auc": 0.4348958333333333
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5357142857142857,
+          "balanced_accuracy": 0.5655080213903744,
+          "roc_auc": 0.5601604278074866
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.48129423660262893,
+          "roc_auc": 0.5166835187057635
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.5153883732291158,
+          "roc_auc": 0.4465070835368833
+        },
+        "prior_task_255183": {
+          "accuracy": 0.6339285714285714,
+          "balanced_accuracy": 0.6237179487179487,
+          "roc_auc": 0.6205128205128205
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 230000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_230000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8392857142857143,
+          "balanced_accuracy": 0.515625,
+          "roc_auc": 0.453125
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5535714285714286,
+          "balanced_accuracy": 0.47593582887700536,
+          "roc_auc": 0.5701871657754011
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5357142857142857,
+          "balanced_accuracy": 0.478597910347152,
+          "roc_auc": 0.5530839231547017
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7767857142857143,
+          "balanced_accuracy": 0.4887640449438202,
+          "roc_auc": 0.4528578407425501
+        },
+        "prior_task_255183": {
+          "accuracy": 0.4642857142857143,
+          "balanced_accuracy": 0.4935897435897436,
+          "roc_auc": 0.5224358974358974
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 240000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_240000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8125,
+          "balanced_accuracy": 0.4739583333333333,
+          "roc_auc": 0.5169270833333333
+        },
+        "prior_task_153339": {
+          "accuracy": 0.45535714285714285,
+          "balanced_accuracy": 0.4792780748663102,
+          "roc_auc": 0.5471256684491979
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5267857142857143,
+          "balanced_accuracy": 0.5414560161779576,
+          "roc_auc": 0.5490394337714863
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7946428571428571,
+          "balanced_accuracy": 0.5161211529066927,
+          "roc_auc": 0.3976551050317538
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.48333333333333334,
+          "roc_auc": 0.47371794871794876
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 250000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_250000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.484375,
+          "roc_auc": 0.5618489583333333
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5625,
+          "balanced_accuracy": 0.5233957219251337,
+          "roc_auc": 0.5564839572192514
+        },
+        "prior_task_80935": {
+          "accuracy": 0.6071428571428571,
+          "balanced_accuracy": 0.5409504550050557,
+          "roc_auc": 0.5149983147960904
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7589285714285714,
+          "balanced_accuracy": 0.5097703957010259,
+          "roc_auc": 0.47777234978016614
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.5615384615384615,
+          "roc_auc": 0.5887820512820513
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 260000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_260000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8482142857142857,
+          "balanced_accuracy": 0.5729166666666667,
+          "roc_auc": 0.5983072916666667
+        },
+        "prior_task_153339": {
+          "accuracy": 0.5982142857142857,
+          "balanced_accuracy": 0.5367647058823529,
+          "roc_auc": 0.5314171122994652
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5535714285714286,
+          "balanced_accuracy": 0.4711830131445905,
+          "roc_auc": 0.5116279069767442
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8035714285714286,
+          "balanced_accuracy": 0.5862237420615535,
+          "roc_auc": 0.5446995603321935
+        },
+        "prior_task_255183": {
+          "accuracy": 0.6071428571428571,
+          "balanced_accuracy": 0.591025641025641,
+          "roc_auc": 0.5458333333333334
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 270000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_270000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8392857142857143,
+          "balanced_accuracy": 0.515625,
+          "roc_auc": 0.5149739583333333
+        },
+        "prior_task_153339": {
+          "accuracy": 0.44642857142857145,
+          "balanced_accuracy": 0.4839572192513369,
+          "roc_auc": 0.49866310160427807
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5625,
+          "balanced_accuracy": 0.4828109201213347,
+          "roc_auc": 0.5284799460734749
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7678571428571429,
+          "balanced_accuracy": 0.5315095261358085,
+          "roc_auc": 0.46458231558378116
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5089285714285714,
+          "balanced_accuracy": 0.5378205128205128,
+          "roc_auc": 0.5496794871794871
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 280000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_280000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7321428571428571,
+          "balanced_accuracy": 0.53125,
+          "roc_auc": 0.5322265625
+        },
+        "prior_task_153339": {
+          "accuracy": 0.48214285714285715,
+          "balanced_accuracy": 0.4852941176470588,
+          "roc_auc": 0.5040106951871658
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5714285714285714,
+          "balanced_accuracy": 0.5513987192450286,
+          "roc_auc": 0.5756656555443209
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.5749877870053737,
+          "roc_auc": 0.5188080117244748
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5625,
+          "balanced_accuracy": 0.5801282051282051,
+          "roc_auc": 0.5650641025641026
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 290000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_290000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.8125,
+          "balanced_accuracy": 0.6302083333333333,
+          "roc_auc": 0.576171875
+        },
+        "prior_task_153339": {
+          "accuracy": 0.6517857142857143,
+          "balanced_accuracy": 0.588903743315508,
+          "roc_auc": 0.5297459893048129
+        },
+        "prior_task_80935": {
+          "accuracy": 0.6339285714285714,
+          "balanced_accuracy": 0.5626895854398382,
+          "roc_auc": 0.536231884057971
+        },
+        "prior_task_92348": {
+          "accuracy": 0.6071428571428571,
+          "balanced_accuracy": 0.5109916951636542,
+          "roc_auc": 0.5197850512945774
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5982142857142857,
+          "balanced_accuracy": 0.5762820512820512,
+          "roc_auc": 0.591025641025641
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 300000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_300000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.5178571428571429,
+          "balanced_accuracy": 0.4583333333333333,
+          "roc_auc": 0.44010416666666663
+        },
+        "prior_task_153339": {
+          "accuracy": 0.6160714285714286,
+          "balanced_accuracy": 0.535427807486631,
+          "roc_auc": 0.48897058823529416
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5357142857142857,
+          "balanced_accuracy": 0.5925176946410515,
+          "roc_auc": 0.5524098415908325
+        },
+        "prior_task_92348": {
+          "accuracy": 0.8214285714285714,
+          "balanced_accuracy": 0.6619443087445042,
+          "roc_auc": 0.6692721055202736
+        },
+        "prior_task_255183": {
+          "accuracy": 0.625,
+          "balanced_accuracy": 0.6051282051282051,
+          "roc_auc": 0.5996794871794872
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    },
+    {
+      "step": 310000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251125_230627-jiio9rup\\files\\model_step_310000.pt",
+      "datasets": {
+        "prior_task_191086": {
+          "accuracy": 0.7767857142857143,
+          "balanced_accuracy": 0.4791666666666667,
+          "roc_auc": 0.45182291666666663
+        },
+        "prior_task_153339": {
+          "accuracy": 0.49107142857142855,
+          "balanced_accuracy": 0.464572192513369,
+          "roc_auc": 0.446524064171123
+        },
+        "prior_task_80935": {
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.4408493427704752,
+          "roc_auc": 0.45736434108527135
+        },
+        "prior_task_92348": {
+          "accuracy": 0.7857142857142857,
+          "balanced_accuracy": 0.558866634098681,
+          "roc_auc": 0.5832926233512457
+        },
+        "prior_task_255183": {
+          "accuracy": 0.5446428571428571,
+          "balanced_accuracy": 0.5365384615384615,
+          "roc_auc": 0.5192307692307692
+        }
+      },
+      "prior_h5": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\300k_150x5_2.h5"
+    }
+  ]
+}

@@ -1,0 +1,1617 @@
+{
+  "run_dir": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue",
+  "checkpoints": [
+    {
+      "step": 320000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_320000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8798355644566249,
+          "roc_auc": 0.912511858332455
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6380208333333334,
+          "balanced_accuracy": 0.5817611940298507,
+          "roc_auc": 0.6035820895522388
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6737967914438503,
+          "balanced_accuracy": 0.5039227281687364,
+          "roc_auc": 0.5238714764439188
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.49984866828087166,
+          "roc_auc": 0.4421156174334141
+        }
+      }
+    },
+    {
+      "step": 330000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_330000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8625223990724149,
+          "roc_auc": 0.8359860862232529
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6145833333333334,
+          "balanced_accuracy": 0.5429850746268656,
+          "roc_auc": 0.5217910447761194
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7058823529411765,
+          "balanced_accuracy": 0.5327025428740391,
+          "roc_auc": 0.5530849595899862
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.922,
+          "balanced_accuracy": 0.5051452784503632,
+          "roc_auc": 0.5024969733656175
+        }
+      }
+    },
+    {
+      "step": 340000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_340000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9157894736842105,
+          "balanced_accuracy": 0.9041056182143987,
+          "roc_auc": 0.9243174870875934
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6536458333333334,
+          "balanced_accuracy": 0.579910447761194,
+          "roc_auc": 0.5942686567164179
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7032085561497327,
+          "balanced_accuracy": 0.5154937906564163,
+          "roc_auc": 0.509284447072738
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.908,
+          "balanced_accuracy": 0.4809322033898305,
+          "roc_auc": 0.4480175544794189
+        }
+      }
+    },
+    {
+      "step": 350000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_350000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8771929824561403,
+          "balanced_accuracy": 0.8637609360177085,
+          "roc_auc": 0.8757246758722463
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.625,
+          "balanced_accuracy": 0.5405970149253732,
+          "roc_auc": 0.5077462686567165
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7352941176470589,
+          "balanced_accuracy": 0.5288192391090085,
+          "roc_auc": 0.5484723043563966
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.878,
+          "balanced_accuracy": 0.48184019370460046,
+          "roc_auc": 0.39626210653753036
+        }
+      }
+    },
+    {
+      "step": 360000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_360000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8947368421052632,
+          "balanced_accuracy": 0.8642616211658058,
+          "roc_auc": 0.8562770106461474
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.59375,
+          "balanced_accuracy": 0.5287164179104478,
+          "roc_auc": 0.5446567164179104
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7540106951871658,
+          "balanced_accuracy": 0.5681450818056377,
+          "roc_auc": 0.5958604376108811
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.91,
+          "balanced_accuracy": 0.4819915254237288,
+          "roc_auc": 0.512409200968523
+        }
+      }
+    },
+    {
+      "step": 370000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_370000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9087719298245615,
+          "balanced_accuracy": 0.9062137662063877,
+          "roc_auc": 0.9145673026246443
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6354166666666666,
+          "balanced_accuracy": 0.5607164179104478,
+          "roc_auc": 0.5355373134328358
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7192513368983957,
+          "balanced_accuracy": 0.5569288389513108,
+          "roc_auc": 0.5197713384585058
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.882,
+          "balanced_accuracy": 0.4671610169491525,
+          "roc_auc": 0.5198244552058112
+        }
+      }
+    },
+    {
+      "step": 380000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_380000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8701754385964913,
+          "balanced_accuracy": 0.8370138083693475,
+          "roc_auc": 0.828449457151892
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6432291666666666,
+          "balanced_accuracy": 0.5597910447761194,
+          "roc_auc": 0.5347761194029852
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6844919786096256,
+          "balanced_accuracy": 0.5186674551547408,
+          "roc_auc": 0.5525724423418096
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.91,
+          "balanced_accuracy": 0.4819915254237288,
+          "roc_auc": 0.46050242130750607
+        }
+      }
+    },
+    {
+      "step": 390000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_390000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9052631578947369,
+          "balanced_accuracy": 0.8995731000316223,
+          "roc_auc": 0.8920101191103617
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5625,
+          "balanced_accuracy": 0.5341492537313433,
+          "roc_auc": 0.5238805970149254
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7379679144385026,
+          "balanced_accuracy": 0.5383008082002759,
+          "roc_auc": 0.5355016755371576
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.92,
+          "balanced_accuracy": 0.5040859564164649,
+          "roc_auc": 0.6030569007263923
+        }
+      }
+    },
+    {
+      "step": 400000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_400000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8842105263157894,
+          "balanced_accuracy": 0.8712712132391693,
+          "roc_auc": 0.8754611573732475
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6119791666666666,
+          "balanced_accuracy": 0.5825373134328359,
+          "roc_auc": 0.5920597014925373
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6818181818181818,
+          "balanced_accuracy": 0.5091858860634733,
+          "roc_auc": 0.4654839345554898
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.898,
+          "balanced_accuracy": 0.475635593220339,
+          "roc_auc": 0.3784806295399516
+        }
+      }
+    },
+    {
+      "step": 410000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_410000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9122807017543859,
+          "balanced_accuracy": 0.8974649520396332,
+          "roc_auc": 0.9117213028354592
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6041666666666666,
+          "balanced_accuracy": 0.5367164179104478,
+          "roc_auc": 0.5719104477611939
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7165775401069518,
+          "balanced_accuracy": 0.5204021289178001,
+          "roc_auc": 0.5656613443721664
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.906,
+          "balanced_accuracy": 0.49667070217917675,
+          "roc_auc": 0.40019673123486676
+        }
+      }
+    },
+    {
+      "step": 420000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_420000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9087719298245615,
+          "balanced_accuracy": 0.8946716559502477,
+          "roc_auc": 0.8989143037841256
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6197916666666666,
+          "balanced_accuracy": 0.5314029850746268,
+          "roc_auc": 0.516
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7379679144385026,
+          "balanced_accuracy": 0.5228464419475656,
+          "roc_auc": 0.5556475458308693
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.91,
+          "balanced_accuracy": 0.4819915254237288,
+          "roc_auc": 0.4708686440677966
+        }
+      }
+    },
+    {
+      "step": 430000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_430000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9157894736842105,
+          "balanced_accuracy": 0.9002582481290187,
+          "roc_auc": 0.9074523031516812
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6015625,
+          "balanced_accuracy": 0.538179104477612,
+          "roc_auc": 0.5435223880597015
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7032085561497327,
+          "balanced_accuracy": 0.5309481569091268,
+          "roc_auc": 0.5106248767987385
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.898,
+          "balanced_accuracy": 0.5092312348668281,
+          "roc_auc": 0.4887257869249395
+        }
+      }
+    },
+    {
+      "step": 440000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_440000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9192982456140351,
+          "balanced_accuracy": 0.9030515442184042,
+          "roc_auc": 0.8959628965953409
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.625,
+          "balanced_accuracy": 0.556179104477612,
+          "roc_auc": 0.5548059701492538
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7406417112299465,
+          "balanced_accuracy": 0.5323280110388331,
+          "roc_auc": 0.5557263946382811
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.5166464891041163,
+          "roc_auc": 0.5147548426150121
+        }
+      }
+    },
+    {
+      "step": 450000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_450000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8701754385964913,
+          "balanced_accuracy": 0.8658690840096974,
+          "roc_auc": 0.8569621587435439
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6458333333333334,
+          "balanced_accuracy": 0.5496716417910448,
+          "roc_auc": 0.5120298507462687
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7459893048128342,
+          "balanced_accuracy": 0.53197319140548,
+          "roc_auc": 0.4883895131086142
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.896,
+          "balanced_accuracy": 0.5249697336561744,
+          "roc_auc": 0.5245157384987894
+        }
+      }
+    },
+    {
+      "step": 460000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_460000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8842105263157894,
+          "balanced_accuracy": 0.8520343628122694,
+          "roc_auc": 0.8330873827342679
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6276041666666666,
+          "balanced_accuracy": 0.559910447761194,
+          "roc_auc": 0.5463880597014925
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7085561497326203,
+          "balanced_accuracy": 0.5190025625862409,
+          "roc_auc": 0.5623102700571654
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.93,
+          "balanced_accuracy": 0.4925847457627119,
+          "roc_auc": 0.5718825665859566
+        }
+      }
+    },
+    {
+      "step": 470000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_470000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8947368421052632,
+          "balanced_accuracy": 0.8911932117634658,
+          "roc_auc": 0.8829977864446084
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6223958333333334,
+          "balanced_accuracy": 0.5420597014925373,
+          "roc_auc": 0.5097910447761194
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7272727272727273,
+          "balanced_accuracy": 0.5158288980879164,
+          "roc_auc": 0.4852355608121427
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.9,
+          "balanced_accuracy": 0.49349273607748184,
+          "roc_auc": 0.5111228813559322
+        }
+      }
+    },
+    {
+      "step": 480000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_480000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8947368421052632,
+          "balanced_accuracy": 0.8988879519342258,
+          "roc_auc": 0.8984926741857279
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6458333333333334,
+          "balanced_accuracy": 0.5462089552238806,
+          "roc_auc": 0.4862388059701493
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7433155080213903,
+          "balanced_accuracy": 0.5263552138773901,
+          "roc_auc": 0.5324462842499507
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.854,
+          "balanced_accuracy": 0.50272397094431,
+          "roc_auc": 0.5072639225181598
+        }
+      }
+    },
+    {
+      "step": 490000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_490000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.881759249499315,
+          "roc_auc": 0.8938020449035522
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6302083333333334,
+          "balanced_accuracy": 0.560179104477612,
+          "roc_auc": 0.556179104477612
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7085561497326203,
+          "balanced_accuracy": 0.538320520402129,
+          "roc_auc": 0.5537157500492805
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.88,
+          "balanced_accuracy": 0.4661016949152542,
+          "roc_auc": 0.3550998789346247
+        }
+      }
+    },
+    {
+      "step": 500000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_500000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8912280701754386,
+          "balanced_accuracy": 0.8672393802044904,
+          "roc_auc": 0.8822599346474123
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.609375,
+          "balanced_accuracy": 0.5424477611940298,
+          "roc_auc": 0.5279104477611941
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7272727272727273,
+          "balanced_accuracy": 0.5467376305933372,
+          "roc_auc": 0.5495367632564558
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.874,
+          "balanced_accuracy": 0.4629237288135593,
+          "roc_auc": 0.4706416464891041
+        }
+      }
+    },
+    {
+      "step": 510000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_510000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8912280701754386,
+          "balanced_accuracy": 0.8633920101191104,
+          "roc_auc": 0.8628649731211131
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6015625,
+          "balanced_accuracy": 0.5260597014925373,
+          "roc_auc": 0.4981194029850746
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6737967914438503,
+          "balanced_accuracy": 0.4961955450423813,
+          "roc_auc": 0.4982456140350877
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.4830508474576271,
+          "roc_auc": 0.48524515738498786
+        }
+      }
+    },
+    {
+      "step": 520000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_520000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8631578947368421,
+          "balanced_accuracy": 0.8602824918309265,
+          "roc_auc": 0.8689258985980816
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.640625,
+          "balanced_accuracy": 0.5612537313432835,
+          "roc_auc": 0.5690746268656717
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7165775401069518,
+          "balanced_accuracy": 0.5358564951705105,
+          "roc_auc": 0.5431105854523951
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.916,
+          "balanced_accuracy": 0.4851694915254237,
+          "roc_auc": 0.4923577481840194
+        }
+      }
+    },
+    {
+      "step": 530000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_530000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8947368421052632,
+          "balanced_accuracy": 0.8796511015073258,
+          "roc_auc": 0.8942236745019501
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6041666666666666,
+          "balanced_accuracy": 0.5349850746268656,
+          "roc_auc": 0.5379701492537314
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6577540106951871,
+          "balanced_accuracy": 0.4740784545633747,
+          "roc_auc": 0.5001774098166766
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.928,
+          "balanced_accuracy": 0.4915254237288136,
+          "roc_auc": 0.45338983050847453
+        }
+      }
+    },
+    {
+      "step": 540000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_540000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8491228070175438,
+          "balanced_accuracy": 0.8529566775587647,
+          "roc_auc": 0.84420786339201
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5729166666666666,
+          "balanced_accuracy": 0.5317611940298508,
+          "roc_auc": 0.5383283582089553
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7219251336898396,
+          "balanced_accuracy": 0.5355016755371576,
+          "roc_auc": 0.5041592745909718
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.892,
+          "balanced_accuracy": 0.5060532687651332,
+          "roc_auc": 0.4894824455205811
+        }
+      }
+    },
+    {
+      "step": 550000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_550000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8807017543859649,
+          "balanced_accuracy": 0.8665542321070939,
+          "roc_auc": 0.8689258985980816
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6380208333333334,
+          "balanced_accuracy": 0.6008059701492537,
+          "roc_auc": 0.5919402985074628
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7165775401069518,
+          "balanced_accuracy": 0.5551744529863986,
+          "roc_auc": 0.5297851369998029
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.93,
+          "balanced_accuracy": 0.5093825665859565,
+          "roc_auc": 0.40799031476997577
+        }
+      }
+    },
+    {
+      "step": 560000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_560000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8912280701754386,
+          "balanced_accuracy": 0.8614683250764203,
+          "roc_auc": 0.8454727521872034
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6302083333333334,
+          "balanced_accuracy": 0.5688358208955224,
+          "roc_auc": 0.5694925373134329
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7593582887700535,
+          "balanced_accuracy": 0.5909718115513503,
+          "roc_auc": 0.545338064261778
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.91,
+          "balanced_accuracy": 0.5323849878934624,
+          "roc_auc": 0.4079903147699757
+        }
+      }
+    },
+    {
+      "step": 570000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_570000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8736842105263158,
+          "balanced_accuracy": 0.843654474544113,
+          "roc_auc": 0.8178033097923474
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5963541666666666,
+          "balanced_accuracy": 0.5134029850746269,
+          "roc_auc": 0.5303582089552239
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7299465240641712,
+          "balanced_accuracy": 0.5562191996846048,
+          "roc_auc": 0.5513108614232209
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.902,
+          "balanced_accuracy": 0.4777542372881356,
+          "roc_auc": 0.5709367433414044
+        }
+      }
+    },
+    {
+      "step": 580000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_580000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8842105263157894,
+          "balanced_accuracy": 0.8828133234953094,
+          "roc_auc": 0.8845788974386002
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5911458333333334,
+          "balanced_accuracy": 0.5007462686567165,
+          "roc_auc": 0.545134328358209
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7032085561497327,
+          "balanced_accuracy": 0.5039030159668835,
+          "roc_auc": 0.5447269860043367
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.9,
+          "balanced_accuracy": 0.5102905569007264,
+          "roc_auc": 0.4412832929782083
+        }
+      }
+    },
+    {
+      "step": 590000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_590000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8982456140350877,
+          "balanced_accuracy": 0.8709022873405714,
+          "roc_auc": 0.8647096026141035
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5963541666666666,
+          "balanced_accuracy": 0.5411044776119402,
+          "roc_auc": 0.5448059701492538
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7352941176470589,
+          "balanced_accuracy": 0.5520007884880741,
+          "roc_auc": 0.5376700177409818
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.4830508474576271,
+          "roc_auc": 0.47336561743341404
+        }
+      }
+    },
+    {
+      "step": 600000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_600000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8605987140297249,
+          "roc_auc": 0.8463160113839991
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6380208333333334,
+          "balanced_accuracy": 0.5869552238805971,
+          "roc_auc": 0.5858805970149253
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6657754010695187,
+          "balanced_accuracy": 0.4909323871476444,
+          "roc_auc": 0.470609107037256
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.934,
+          "balanced_accuracy": 0.5115012106537531,
+          "roc_auc": 0.6136501210653753
+        }
+      }
+    },
+    {
+      "step": 610000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_610000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8807017543859649,
+          "balanced_accuracy": 0.8492410667228839,
+          "roc_auc": 0.879203120059028
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.625,
+          "balanced_accuracy": 0.5544477611940298,
+          "roc_auc": 0.5435223880597015
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.679144385026738,
+          "balanced_accuracy": 0.4803863591563178,
+          "roc_auc": 0.5272619751626256
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.928,
+          "balanced_accuracy": 0.5419188861985472,
+          "roc_auc": 0.5579600484261501
+        }
+      }
+    },
+    {
+      "step": 620000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_620000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8736842105263158,
+          "balanced_accuracy": 0.8532728997575629,
+          "roc_auc": 0.8698745651944766
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6119791666666666,
+          "balanced_accuracy": 0.546179104477612,
+          "roc_auc": 0.5259104477611941
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7192513368983957,
+          "balanced_accuracy": 0.5182929233195348,
+          "roc_auc": 0.5381036861817465
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.9,
+          "balanced_accuracy": 0.49349273607748184,
+          "roc_auc": 0.48668280871670705
+        }
+      }
+    },
+    {
+      "step": 630000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_630000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8990724148835249,
+          "roc_auc": 0.8920628228101612
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5833333333333334,
+          "balanced_accuracy": 0.5172537313432836,
+          "roc_auc": 0.5041791044776119
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6818181818181818,
+          "balanced_accuracy": 0.5169130691898285,
+          "roc_auc": 0.4944608712793219
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.92,
+          "balanced_accuracy": 0.4872881355932203,
+          "roc_auc": 0.5898153753026635
+        }
+      }
+    },
+    {
+      "step": 640000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_640000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8682934542004849,
+          "roc_auc": 0.8792558237588279
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6197916666666666,
+          "balanced_accuracy": 0.5487164179104478,
+          "roc_auc": 0.552865671641791
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7219251336898396,
+          "balanced_accuracy": 0.539365267100335,
+          "roc_auc": 0.5444115907746895
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.92,
+          "balanced_accuracy": 0.5208837772397095,
+          "roc_auc": 0.5643916464891041
+        }
+      }
+    },
+    {
+      "step": 650000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_650000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8491228070175438,
+          "balanced_accuracy": 0.8144829767049646,
+          "roc_auc": 0.8104247918203857
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6510416666666666,
+          "balanced_accuracy": 0.5796417910447761,
+          "roc_auc": 0.5894626865671642
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6951871657754011,
+          "balanced_accuracy": 0.5295485905775675,
+          "roc_auc": 0.5315986595702741
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.914,
+          "balanced_accuracy": 0.50090799031477,
+          "roc_auc": 0.5233807506053268
+        }
+      }
+    },
+    {
+      "step": 660000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_660000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8912280701754386,
+          "balanced_accuracy": 0.8691630652471805,
+          "roc_auc": 0.8714556761884684
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5989583333333334,
+          "balanced_accuracy": 0.5621492537313433,
+          "roc_auc": 0.5404477611940299
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7112299465240641,
+          "balanced_accuracy": 0.5362113148038636,
+          "roc_auc": 0.5408239700374532
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.902,
+          "balanced_accuracy": 0.5113498789346247,
+          "roc_auc": 0.6342312348668282
+        }
+      }
+    },
+    {
+      "step": 670000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_670000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9017543859649123,
+          "balanced_accuracy": 0.8890850637714768,
+          "roc_auc": 0.884209971540002
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6354166666666666,
+          "balanced_accuracy": 0.5728358208955224,
+          "roc_auc": 0.5720298507462687
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7245989304812834,
+          "balanced_accuracy": 0.544983244628425,
+          "roc_auc": 0.5399172087522176
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.93,
+          "balanced_accuracy": 0.526180387409201,
+          "roc_auc": 0.4694309927360775
+        }
+      }
+    },
+    {
+      "step": 680000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_680000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9122807017543859,
+          "balanced_accuracy": 0.9013123221250132,
+          "roc_auc": 0.9050806366606936
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5234375,
+          "balanced_accuracy": 0.5058805970149254,
+          "roc_auc": 0.5025074626865671
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7219251336898396,
+          "balanced_accuracy": 0.5586832249162231,
+          "roc_auc": 0.5368026808594519
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.924,
+          "balanced_accuracy": 0.5062046004842615,
+          "roc_auc": 0.48532082324455206
+        }
+      }
+    },
+    {
+      "step": 690000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_690000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8625223990724149,
+          "roc_auc": 0.8564087698956467
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6197916666666666,
+          "balanced_accuracy": 0.5712238805970149,
+          "roc_auc": 0.5912835820895522
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6898395721925134,
+          "balanced_accuracy": 0.5144490439582101,
+          "roc_auc": 0.4995466193573822
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.902,
+          "balanced_accuracy": 0.4777542372881356,
+          "roc_auc": 0.47465193704600495
+        }
+      }
+    },
+    {
+      "step": 700000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_700000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9087719298245615,
+          "balanced_accuracy": 0.8946716559502477,
+          "roc_auc": 0.9153051544218404
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.609375,
+          "balanced_accuracy": 0.5407164179104478,
+          "roc_auc": 0.5794626865671642
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6951871657754011,
+          "balanced_accuracy": 0.5372757737039228,
+          "roc_auc": 0.4902030356790853
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.4830508474576271,
+          "roc_auc": 0.4929630750605327
+        }
+      }
+    },
+    {
+      "step": 710000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_710000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.887719298245614,
+          "balanced_accuracy": 0.8567513439443448,
+          "roc_auc": 0.8692948244966797
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6510416666666666,
+          "balanced_accuracy": 0.6038805970149254,
+          "roc_auc": 0.6079104477611939
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6684491978609626,
+          "balanced_accuracy": 0.48109599842302386,
+          "roc_auc": 0.4562191996846048
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.892,
+          "balanced_accuracy": 0.4724576271186441,
+          "roc_auc": 0.4984866828087168
+        }
+      }
+    },
+    {
+      "step": 720000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_720000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8842105263157894,
+          "balanced_accuracy": 0.8520343628122694,
+          "roc_auc": 0.8398334563086328
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5546875,
+          "balanced_accuracy": 0.5558507462686567,
+          "roc_auc": 0.5432537313432836
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7058823529411765,
+          "balanced_accuracy": 0.5327025428740391,
+          "roc_auc": 0.5526118667455155
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.898,
+          "balanced_accuracy": 0.49243341404358354,
+          "roc_auc": 0.48229418886198544
+        }
+      }
+    },
+    {
+      "step": 730000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_730000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8912280701754386,
+          "balanced_accuracy": 0.8672393802044904,
+          "roc_auc": 0.8855802677347949
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6588541666666666,
+          "balanced_accuracy": 0.5717910447761194,
+          "roc_auc": 0.5674626865671641
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6898395721925134,
+          "balanced_accuracy": 0.4951310861423221,
+          "roc_auc": 0.4808594520007885
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.5166464891041163,
+          "roc_auc": 0.4748032687651332
+        }
+      }
+    },
+    {
+      "step": 740000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_740000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9087719298245615,
+          "balanced_accuracy": 0.8908242858648677,
+          "roc_auc": 0.893064193106356
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6302083333333334,
+          "balanced_accuracy": 0.542865671641791,
+          "roc_auc": 0.5402985074626867
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7379679144385026,
+          "balanced_accuracy": 0.5305736250739208,
+          "roc_auc": 0.5147841513897102
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.91,
+          "balanced_accuracy": 0.5155871670702179,
+          "roc_auc": 0.4959897094430992
+        }
+      }
+    },
+    {
+      "step": 750000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_750000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8912280701754386,
+          "balanced_accuracy": 0.8730104353325603,
+          "roc_auc": 0.8679772320016865
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6041666666666666,
+          "balanced_accuracy": 0.5245970149253731,
+          "roc_auc": 0.5803134328358209
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7005347593582888,
+          "balanced_accuracy": 0.513739404691504,
+          "roc_auc": 0.5088507786319731
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.922,
+          "balanced_accuracy": 0.5051452784503632,
+          "roc_auc": 0.5292070217917675
+        }
+      }
+    },
+    {
+      "step": 760000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_760000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8771929824561403,
+          "balanced_accuracy": 0.8464477706334985,
+          "roc_auc": 0.8467903446821967
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6276041666666666,
+          "balanced_accuracy": 0.539134328358209,
+          "roc_auc": 0.5453283582089552
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7192513368983957,
+          "balanced_accuracy": 0.52602010644589,
+          "roc_auc": 0.5920756948551154
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.898,
+          "balanced_accuracy": 0.5260290556900726,
+          "roc_auc": 0.6437651331719129
+        }
+      }
+    },
+    {
+      "step": 770000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_770000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8736842105263158,
+          "balanced_accuracy": 0.843654474544113,
+          "roc_auc": 0.845578159586803
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6223958333333334,
+          "balanced_accuracy": 0.535134328358209,
+          "roc_auc": 0.5523582089552239
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7486631016042781,
+          "balanced_accuracy": 0.5684999014389907,
+          "roc_auc": 0.6425783560023655
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.916,
+          "balanced_accuracy": 0.552360774818402,
+          "roc_auc": 0.5223970944309928
+        }
+      }
+    },
+    {
+      "step": 780000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_780000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9087719298245615,
+          "balanced_accuracy": 0.8927479709075578,
+          "roc_auc": 0.8943290819015496
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5546875,
+          "balanced_accuracy": 0.4883283582089552,
+          "roc_auc": 0.5268358208955224
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7299465240641712,
+          "balanced_accuracy": 0.5330376503055392,
+          "roc_auc": 0.5384190814113937
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.888,
+          "balanced_accuracy": 0.5543280871670702,
+          "roc_auc": 0.5263317191283293
+        }
+      }
+    },
+    {
+      "step": 790000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_790000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8982456140350877,
+          "balanced_accuracy": 0.8978338779382313,
+          "roc_auc": 0.9201538948034151
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6171875,
+          "balanced_accuracy": 0.550179104477612,
+          "roc_auc": 0.5440597014925374
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6737967914438503,
+          "balanced_accuracy": 0.5271042775478021,
+          "roc_auc": 0.5260003942440371
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.914,
+          "balanced_accuracy": 0.5177058111380145,
+          "roc_auc": 0.5485018159806295
+        }
+      }
+    },
+    {
+      "step": 800000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_800000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8596491228070176,
+          "balanced_accuracy": 0.8459470854854011,
+          "roc_auc": 0.8613892695267208
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.65625,
+          "balanced_accuracy": 0.6148059701492538,
+          "roc_auc": 0.6076119402985074
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7192513368983957,
+          "balanced_accuracy": 0.5569288389513108,
+          "roc_auc": 0.5614823575793416
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.882,
+          "balanced_accuracy": 0.5175544794188862,
+          "roc_auc": 0.5925393462469734
+        }
+      }
+    },
+    {
+      "step": 810000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_810000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9122807017543859,
+          "balanced_accuracy": 0.8955412669969431,
+          "roc_auc": 0.892906082006957
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6380208333333334,
+          "balanced_accuracy": 0.5402089552238806,
+          "roc_auc": 0.5079701492537313
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7005347593582888,
+          "balanced_accuracy": 0.5369209540705697,
+          "roc_auc": 0.554267691701163
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.89,
+          "balanced_accuracy": 0.48819612590799033,
+          "roc_auc": 0.5416918886198547
+        }
+      }
+    },
+    {
+      "step": 820000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_820000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9157894736842105,
+          "balanced_accuracy": 0.8964108780436386,
+          "roc_auc": 0.8998102666807211
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6484375,
+          "balanced_accuracy": 0.5534029850746268,
+          "roc_auc": 0.5659402985074627
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7379679144385026,
+          "balanced_accuracy": 0.5498915828898088,
+          "roc_auc": 0.5541888428937513
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.91,
+          "balanced_accuracy": 0.5155871670702179,
+          "roc_auc": 0.5339739709443099
+        }
+      }
+    },
+    {
+      "step": 830000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_830000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8947368421052632,
+          "balanced_accuracy": 0.8950405818488458,
+          "roc_auc": 0.8942763782017497
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5520833333333334,
+          "balanced_accuracy": 0.5244179104477612,
+          "roc_auc": 0.4908059701492537
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6871657754010695,
+          "balanced_accuracy": 0.5165582495564754,
+          "roc_auc": 0.5290754977330968
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.898,
+          "balanced_accuracy": 0.475635593220339,
+          "roc_auc": 0.49122276029055684
+        }
+      }
+    },
+    {
+      "step": 840000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_840000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8982456140350877,
+          "balanced_accuracy": 0.8901391377674712,
+          "roc_auc": 0.8893222304205755
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5494791666666666,
+          "balanced_accuracy": 0.48779104477611934,
+          "roc_auc": 0.47680597014925374
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7245989304812834,
+          "balanced_accuracy": 0.5333924699388922,
+          "roc_auc": 0.5262763650699783
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.918,
+          "balanced_accuracy": 0.5198244552058111,
+          "roc_auc": 0.47328995157384984
+        }
+      }
+    },
+    {
+      "step": 850000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_850000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9052631578947369,
+          "balanced_accuracy": 0.8995731000316223,
+          "roc_auc": 0.8911141562137662
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6171875,
+          "balanced_accuracy": 0.5640298507462687,
+          "roc_auc": 0.5400597014925373
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7058823529411765,
+          "balanced_accuracy": 0.5481569091267494,
+          "roc_auc": 0.5595111373940469
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.896,
+          "balanced_accuracy": 0.4745762711864407,
+          "roc_auc": 0.4913740920096852
+        }
+      }
+    },
+    {
+      "step": 860000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_860000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9017543859649123,
+          "balanced_accuracy": 0.8717718983872669,
+          "roc_auc": 0.8589648993359333
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.609375,
+          "balanced_accuracy": 0.5545671641791045,
+          "roc_auc": 0.541910447761194
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6898395721925134,
+          "balanced_accuracy": 0.5144490439582101,
+          "roc_auc": 0.4999802877981471
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.932,
+          "balanced_accuracy": 0.5104418886198547,
+          "roc_auc": 0.48963377723970947
+        }
+      }
+    },
+    {
+      "step": 870000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_870000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9122807017543859,
+          "balanced_accuracy": 0.8936175819542532,
+          "roc_auc": 0.8984926741857279
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5911458333333334,
+          "balanced_accuracy": 0.5440298507462686,
+          "roc_auc": 0.5266567164179105
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7032085561497327,
+          "balanced_accuracy": 0.5193573822195939,
+          "roc_auc": 0.499625468164794
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.93,
+          "balanced_accuracy": 0.4925847457627119,
+          "roc_auc": 0.5566737288135594
+        }
+      }
+    },
+    {
+      "step": 880000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_880000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9052631578947369,
+          "balanced_accuracy": 0.8841836196901023,
+          "roc_auc": 0.8780436386634342
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6380208333333334,
+          "balanced_accuracy": 0.5627164179104478,
+          "roc_auc": 0.5424477611940299
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.732620320855615,
+          "balanced_accuracy": 0.519337670017741,
+          "roc_auc": 0.5054011433077075
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.898,
+          "balanced_accuracy": 0.49243341404358354,
+          "roc_auc": 0.504161622276029
+        }
+      }
+    },
+    {
+      "step": 890000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_890000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8842105263157894,
+          "balanced_accuracy": 0.8597291029830294,
+          "roc_auc": 0.8720354168862655
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5989583333333334,
+          "balanced_accuracy": 0.5067462686567165,
+          "roc_auc": 0.5298805970149254
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.732620320855615,
+          "balanced_accuracy": 0.5463828109599842,
+          "roc_auc": 0.5190616991917998
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.88,
+          "balanced_accuracy": 0.4996973365617433,
+          "roc_auc": 0.5916313559322034
+        }
+      }
+    },
+    {
+      "step": 900000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_900000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8982456140350877,
+          "balanced_accuracy": 0.8920628228101612,
+          "roc_auc": 0.9019711183725097
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6692708333333334,
+          "balanced_accuracy": 0.6040298507462687,
+          "roc_auc": 0.6216119402985074
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7032085561497327,
+          "balanced_accuracy": 0.5077666075300611,
+          "roc_auc": 0.5399566331559235
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.894,
+          "balanced_accuracy": 0.4735169491525424,
+          "roc_auc": 0.521186440677966
+        }
+      }
+    },
+    {
+      "step": 910000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_910000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.8947368421052632,
+          "balanced_accuracy": 0.8719563613365658,
+          "roc_auc": 0.8593865289343312
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6536458333333334,
+          "balanced_accuracy": 0.560865671641791,
+          "roc_auc": 0.581044776119403
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7058823529411765,
+          "balanced_accuracy": 0.5249753597476838,
+          "roc_auc": 0.47652276759314016
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.932,
+          "balanced_accuracy": 0.4936440677966102,
+          "roc_auc": 0.49825968523002423
+        }
+      }
+    },
+    {
+      "step": 920000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_920000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9087719298245615,
+          "balanced_accuracy": 0.9004427110783177,
+          "roc_auc": 0.9061874143564878
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.5989583333333334,
+          "balanced_accuracy": 0.5431044776119403,
+          "roc_auc": 0.5295522388059701
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.7219251336898396,
+          "balanced_accuracy": 0.4968657599053814,
+          "roc_auc": 0.5222550758919771
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.908,
+          "balanced_accuracy": 0.4809322033898305,
+          "roc_auc": 0.36932506053268765
+        }
+      }
+    },
+    {
+      "step": 930000,
+      "checkpoint": "C:\\Users\\apex\\Code\\Python\\ndp_pytorch_refactor\\nanoTabPFN_version03\\wandb\\run-20251130_195413-dpqk86ue\\files\\model_step_930000.pt",
+      "datasets": {
+        "breast_cancer": {
+          "accuracy": 0.9228070175438596,
+          "balanced_accuracy": 0.9077685253504797,
+          "roc_auc": 0.90576578475809
+        },
+        "tabarena_diabetes": {
+          "accuracy": 0.6015625,
+          "balanced_accuracy": 0.5329850746268656,
+          "roc_auc": 0.5325074626865671
+        },
+        "tabarena_blood_transfusion": {
+          "accuracy": 0.6844919786096256,
+          "balanced_accuracy": 0.49934949733885275,
+          "roc_auc": 0.47380248373743344
+        },
+        "tabarena_amazon_employee_access": {
+          "accuracy": 0.912,
+          "balanced_accuracy": 0.4830508474576271,
+          "roc_auc": 0.5205811138014528
+        }
+      }
+    }
+  ]
+}
