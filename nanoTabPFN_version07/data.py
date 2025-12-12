@@ -38,8 +38,8 @@ def find_corrupted_tasks(h5_path: Path, max_tasks: int | None = None) -> set:
             if n <= 0:
                 continue
             
-            xi = np.asarray(X[i, :n, :], dtype=np.float64)
-            yi = np.asarray(y[i, :n], dtype=np.float64)
+            xi = np.asarray(X[i, :n, :], dtype=np.float32)
+            yi = np.asarray(y[i, :n], dtype=np.float32)
             
             if not np.isfinite(xi).all() or not np.isfinite(yi).all():
                 corrupted.add(i)
@@ -78,7 +78,7 @@ def compute_feature_normalization(
             if n <= 0:
                 continue
             # Read this task's datapoints; no need to keep them after accumulating.
-            xi = np.asarray(X[i, :n, :], dtype=np.float64)  # [n, F]
+            xi = np.asarray(X[i, :n, :], dtype=np.float32)  # [n, F]
             
             # Check for invalid values
             if not np.isfinite(xi).all():
@@ -87,8 +87,8 @@ def compute_feature_normalization(
             
             if sum_x is None:
                 F = xi.shape[-1]
-                sum_x = np.zeros(F, dtype=np.float64)
-                sum_x2 = np.zeros(F, dtype=np.float64)
+                sum_x = np.zeros(F, dtype=np.float32)
+                sum_x2 = np.zeros(F, dtype=np.float32)
 
             # Use Welford's online algorithm for numerical stability
             # Instead of accumulating sum and sum of squares, use online mean/variance

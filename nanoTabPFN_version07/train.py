@@ -424,10 +424,12 @@ def main() -> None:
         vocab_size=config.model.num_outputs,
         beta_start=config.diffusion.beta_start,
         beta_end=config.diffusion.beta_end,
+        beta_type="jsd",
+        transition_mat_type="absorbing",
         device=device,
         dtype=torch.float32,
     )
-    process = D3PM(model, schedule)
+    process = D3PM(model, schedule, transition_mat_type="absorbing")
 
     prior = PriorDumpDataLoader(
         h5_path,

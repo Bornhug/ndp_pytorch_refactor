@@ -8,12 +8,15 @@ import math
 import torch
 import torch.nn.functional as F
 
-from config import DiffusionConfig
+try:
+    from config import DiffusionConfig
+except ImportError:
+    DiffusionConfig = None  # fallback if config is not importable
 
 
 LossType = Literal["kl", "hybrid", "cross_entropy_x_start"]
 ModelPrediction = Literal["x_start", "x_prev"]
-TransitionMatType = Literal["uniform"]
+TransitionMatType = Literal["uniform", "absorbing"]
 ModelOutput = Literal["logits"]  # matches the JAX file comment
 
 @dataclass(frozen=True)
@@ -33,14 +36,14 @@ def get_diffusion_betas(spec: BetaSpec) -> torch.Tensor:
     """
     T = spec.num_timesteps
     if spec.type == "linear":
-        return torch.linspace(spec.start, spec.stop, T, dtype=torch.float64)
+        return torch.linspace(spec.start, spec.stop, T, dtype=torch.float32)
     if spec.type == "cosine":
-        steps = torch.arange(T + 1, dtype=torch.float64) / T
+        steps = torch.arange(T + 1, dtype=torch.float32) / T
         alpha_bar = torch.cos((steps + 0.008) / 1.008 * math.pi / 2)
         betas = 1.0 - alpha_bar[1:] / alpha_bar[:-1]
-        return torch.minimum(betas, torch.tensor(0.999, dtype=torch.float64))
-    # if spec.type == "jsd":
-    #     return 1.0 / torch.linspace(T, 1.0, T, dtype=torch.float64)
+        return torch.minimum(betas, torch.tensor(0.999, dtype=torch.float32))
+    if spec.type == "jsd":
+        return 1.0 / torch.linspace(T, 1.0, T, dtype=torch.float32)
     raise NotImplementedError(spec.type)
 
 
@@ -63,7 +66,7 @@ class CategoricalDiffusionTorch:
     def __init__(
         self,
         *,
-        betas: Optional[torch.Tensor] = None,  # float64 [T]
+        betas: Optional[torch.Tensor] = None,  # float32 [T]
         beta_spec: Optional[BetaSpec] = None,
         model_prediction: ModelPrediction = "x_start",
         model_output: ModelOutput = "logits",
@@ -82,8 +85,8 @@ class CategoricalDiffusionTorch:
             beta_spec = beta_spec or BetaSpec()
             betas = get_diffusion_betas(beta_spec)
 
-        if not (betas.dtype == torch.float64 and betas.ndim == 1):
-            betas = betas.to(dtype=torch.float64).flatten()
+        if not (betas.dtype == torch.float32 and betas.ndim == 1):
+            betas = betas.to(dtype=torch.float32).flatten()
 
         if not ((betas > 0).all() and (betas <= 1).all()):
             raise ValueError("betas must be in (0, 1].")
@@ -91,7 +94,7 @@ class CategoricalDiffusionTorch:
         self.device = device
         self.eps = float(eps)
 
-        self.betas = betas.to(device=device)  # float64
+        self.betas = betas.to(device=device)  # float32
         self.num_timesteps = int(self.betas.shape[0])
 
         self.model_prediction = model_prediction          # 'x_start' or 'x_prev'
@@ -99,11 +102,11 @@ class CategoricalDiffusionTorch:
         self.loss_type = loss_type                        # 'kl', 'hybrid', 'cross_entropy_x_start'
         self.hybrid_coeff = float(hybrid_coeff)
 
-        # In this refactor, num_bits is treated as the vocabulary size (number of classes).
+        # num_bits is treated as vocabulary size (number of classes).
         self.num_bits = int(num_bits)
-        self.num_pixel_vals = int(num_bits)
+        self.num_classes = int(num_bits)
 
-        self.transition_mat_type = transition_mat_type    # 'uniform'|'gaussian'|'absorbing'
+        self.transition_mat_type = transition_mat_type    # 'uniform'|'absorbing'
         self.transition_bands = transition_bands
 
         # Precompute q(x_t | x_{t-1}) matrices and cumulative q(x_t | x_start)
@@ -111,9 +114,11 @@ class CategoricalDiffusionTorch:
         for t in range(self.num_timesteps):
             if transition_mat_type == "uniform":
                 q_one_step.append(self._get_transition_mat_uniform(t))
+            elif transition_mat_type == "absorbing":
+                q_one_step.append(self._get_absorbing_transition_mat(t))
             else:
                 raise ValueError(f"unknown transition_mat_type: {transition_mat_type}")
-        self.q_onestep_mats = torch.stack(q_one_step, dim=0)  # [T, K, K], float64
+        self.q_onestep_mats = torch.stack(q_one_step, dim=0)  # [T, K, K], float32
 
         # q_mats[t] = Q_0 Q_1 ... Q_t  (same multiplication order as JAX tensordot)
         q_mat_t = self.q_onestep_mats[0]
@@ -121,7 +126,7 @@ class CategoricalDiffusionTorch:
         for t in range(1, self.num_timesteps):
             q_mat_t = q_mat_t @ self.q_onestep_mats[t]
             q_mats.append(q_mat_t)
-        self.q_mats = torch.stack(q_mats, dim=0)  # [T, K, K], float64
+        self.q_mats = torch.stack(q_mats, dim=0)  # [T, K, K], float32
         self.transpose_q_onestep_mats = self.q_onestep_mats.transpose(1, 2).contiguous()
 
     # -------------------------
@@ -129,11 +134,23 @@ class CategoricalDiffusionTorch:
     # -------------------------
 
     def _get_full_transition_mat_uniform(self, t: int) -> torch.Tensor:
-        K = self.num_pixel_vals
+        K = self.num_classes
         beta_t = float(self.betas[t].item())
-        mat = torch.full((K, K), fill_value=beta_t / K, dtype=torch.float64, device=self.device)
+        mat = torch.full((K, K), fill_value=beta_t / K, dtype=self.betas.dtype, device=self.device)
         diag_val = 1.0 - beta_t * (K - 1.0) / K
         mat.fill_diagonal_(diag_val)
+        return mat
+
+    def _get_absorbing_transition_mat(self, t: int) -> torch.Tensor:
+        """
+        Transition with an absorbing state at index num_classes//2:
+          q(x_t = i | x_{t-1} = j) = (1-β_t) if i==j, β_t if i==abs_state, else 0
+        """
+        K = self.num_classes
+        beta_t = float(self.betas[t].item())
+        mat = torch.diag(torch.full((K,), 1.0 - beta_t, dtype=self.betas.dtype, device=self.device))
+        abs_idx = K // 2
+        mat[:, abs_idx] += beta_t
         return mat
 
     def _get_transition_mat_uniform(self, t: int) -> torch.Tensor:
@@ -142,7 +159,7 @@ class CategoricalDiffusionTorch:
           - if transition_bands is None => full uniform
           - else banded uniform off-diagonal with row-normalized diagonal
         """
-        K = self.num_pixel_vals
+        K = self.num_classes
         if self.transition_bands is None:
             return self._get_full_transition_mat_uniform(t)
 
@@ -156,14 +173,20 @@ class CategoricalDiffusionTorch:
         """
         x_start: int64 [B, ...]
         t: int64 [B]
-        returns probs: float64 [B, ..., K]
+        returns probs: float32 [B, ..., K]
         """
         B = x_start.shape[0]
-        K = self.num_pixel_vals
+        K = self.num_classes
         t = t.to(device=self.device, dtype=torch.long)
         x_start = x_start.to(device=self.device, dtype=torch.long)
 
-        q = self.q_mats[t]  # [B, K, K]
+        # Bounds checks to catch invalid indices early
+        if x_start.min() < 0 or x_start.max() >= K:
+            raise ValueError(f"x_start out of bounds: min={x_start.min().item()}, max={x_start.max().item()}, V={K}")
+        if t.min() < 0 or t.max() >= self.num_timesteps:
+            raise ValueError(f"t out of bounds: min={t.min().item()}, max={t.max().item()}, T={self.num_timesteps}")
+
+        q = self.q_mats[t]  # [B, K, K] float32
         flat = x_start.reshape(B, -1)  # [B, N]
 
         batch_idx = torch.arange(B, device=self.device)[:, None].expand_as(flat)  # [B,N]
@@ -182,13 +205,13 @@ class CategoricalDiffusionTorch:
         Faithful to JAX: sample via Gumbel-max on logits = log(q_probs).
         noise must be uniform in [0,1) of shape x_start.shape + (K,).
         """
-        probs = self.q_probs(x_start, t).to(dtype=torch.float64)  # [B,...,K]
+        probs = self.q_probs(x_start, t)  # [B,...,K] float32
         logits = torch.log(probs + self.eps)
 
         if noise is None:
-            noise = torch.rand(*probs.shape, device=self.device, dtype=torch.float64, generator=generator)
+            noise = torch.rand(*probs.shape, device=self.device, dtype=self.betas.dtype, generator=generator)
         else:
-            noise = noise.to(device=self.device, dtype=torch.float64)
+            noise = noise.to(device=self.device, dtype=self.betas.dtype)
 
         noise = noise.clamp(min=torch.finfo(noise.dtype).tiny, max=1.0)
         gumbel = -torch.log(-torch.log(noise))
@@ -230,7 +253,7 @@ class CategoricalDiffusionTorch:
     def _p_xprev_from_xstart_probs(
         self,
         *,
-        p_xstart: torch.Tensor,   # float64 [B, N, K]
+        p_xstart: torch.Tensor,   # float32 [B, N, K]
         x_t: torch.Tensor,        # long   [B, N]
         t: torch.Tensor,          # long   [B]
     ) -> torch.Tensor:
@@ -253,9 +276,9 @@ class CategoricalDiffusionTorch:
         if (t == 0).all():
             return p_xstart
 
-        A = self.q_mats[(t - 1).clamp(min=0)].to(device=device)          # [B,K,K]
-        Bmat = self.q_onestep_mats[t].to(device=device)                 # [B,K,K]
-        Q = self.q_mats[t].to(device=device)                            # [B,K,K]
+        A = self.q_mats[(t - 1).clamp(min=0)].to(device=device)          # [B,K,K] float32
+        Bmat = self.q_onestep_mats[t].to(device=device)                 # [B,K,K] float32
+        Q = self.q_mats[t].to(device=device)                            # [B,K,K] float32
 
         # Gather columns j from Q and B for each token
         j = x_t  # [B,N]
@@ -291,10 +314,10 @@ class CategoricalDiffusionTorch:
           q(i | j, k) = q_onestep[t][i,j] * q_mats[t-1][k,i] / q_mats[t][k,j]
         """
         Bsz, N = x_start.shape
-        K = self.num_pixel_vals
+        K = self.num_classes
         device = x_start.device
 
-        out = torch.zeros((Bsz, N, K), device=device, dtype=torch.float64)
+        out = torch.zeros((Bsz, N, K), device=device, dtype=self.betas.dtype)
 
         # t==0 => delta at x_start
         mask0 = (t == 0)
@@ -346,20 +369,20 @@ class CategoricalDiffusionTorch:
 
         x_t = self.q_sample(x_start, t, generator=generator)  # [B,...]
         Bsz = x_start.shape[0]
-        K = self.num_pixel_vals
+        K = self.num_classes
         flat_start = x_start.view(Bsz, -1)  # [B,N]
         flat_xt = x_t.view(Bsz, -1)         # [B,N]
         N = flat_start.shape[1]
 
-        vb = torch.zeros((Bsz,), device=self.device, dtype=torch.float64)
-        ce = torch.zeros((Bsz,), device=self.device, dtype=torch.float64)
+        vb = torch.zeros((Bsz,), device=self.device, dtype=self.betas.dtype)
+        ce = torch.zeros((Bsz,), device=self.device, dtype=self.betas.dtype)
 
         # --- auxiliary CE on x_start (only meaningful if predicting x_start)
         if self.loss_type in ("cross_entropy_x_start", "hybrid"):
             if self.model_prediction != "x_start":
                 raise ValueError("cross_entropy_x_start/hybrid expects model_prediction='x_start'.")
             logits_xstart = self._model_logits_xstart(model, x_t, t)  # [B,...,K]
-            logp = F.log_softmax(logits_xstart.to(torch.float64), dim=-1)  # [B,...,K]
+            logp = F.log_softmax(logits_xstart, dim=-1)  # [B,...,K]
             ce_token = F.nll_loss(
                 logp.view(-1, K),
                 x_start.view(-1),
@@ -370,11 +393,11 @@ class CategoricalDiffusionTorch:
         # --- KL (variational bound term per sampled t, with t==0 reducing to CE)
         if self.loss_type in ("kl", "hybrid"):
             if self.model_prediction == "x_prev":
-                logits_xprev = self._model_logits_xprev(model, x_t, t).to(torch.float64)  # [B,...,K]
+                logits_xprev = self._model_logits_xprev(model, x_t, t).to(self.betas.dtype)  # [B,...,K]
                 logp_xprev = F.log_softmax(logits_xprev, dim=-1).view(Bsz, N, K)
             else:
                 # model predicts x_start -> map to p(xprev|xt)
-                logits_xstart = self._model_logits_xstart(model, x_t, t).to(torch.float64)  # [B,...,K]
+                logits_xstart = self._model_logits_xstart(model, x_t, t).to(self.betas.dtype)  # [B,...,K]
                 p_xstart = torch.softmax(logits_xstart, dim=-1).view(Bsz, N, K)
                 p_xprev = self._p_xprev_from_xstart_probs(p_xstart=p_xstart, x_t=flat_xt, t=t)
                 logp_xprev = torch.log(p_xprev + self.eps)
@@ -416,15 +439,15 @@ class CategoricalDiffusionTorch:
         t = t.to(self.device, dtype=torch.long)
 
         Bsz = x_t.shape[0]
-        K = self.num_pixel_vals
+        K = self.num_classes
         flat_xt = x_t.view(Bsz, -1)
         N = flat_xt.shape[1]
 
         if self.model_prediction == "x_prev":
-            logits = self._model_logits_xprev(model, x_t, t).to(torch.float64)
+            logits = self._model_logits_xprev(model, x_t, t).to(self.betas.dtype)
             p = torch.softmax(logits, dim=-1).view(Bsz, N, K)
         else:
-            logits_xstart = self._model_logits_xstart(model, x_t, t).to(torch.float64)
+            logits_xstart = self._model_logits_xstart(model, x_t, t).to(self.betas.dtype)
             p_xstart = torch.softmax(logits_xstart, dim=-1).view(Bsz, N, K)
             p = self._p_xprev_from_xstart_probs(p_xstart=p_xstart, x_t=flat_xt, t=t)
 
@@ -448,7 +471,7 @@ class CategoricalDiffusionTorch:
           - absorbing: start at the absorbing state (K//2), matching that corruption’s attractor.
         """
         Bsz = shape[0]
-        K = self.num_pixel_vals
+        K = self.num_classes
 
         if self.transition_mat_type == "absorbing":
             x = torch.full(shape, fill_value=K // 2, device=self.device, dtype=torch.long)
@@ -481,6 +504,7 @@ class D3PMSchedule:
         beta_type: Optional[Literal["cosine", "linear"]] = None,
         device: torch.device | str = "cpu",
         dtype: Optional[torch.dtype] = None,
+        transition_mat_type: TransitionMatType = "uniform",
     ) -> "D3PMSchedule":
         device_t = torch.device(device)
 
@@ -492,6 +516,8 @@ class D3PMSchedule:
             beta_type = cfg.schedule if beta_type is None else beta_type
             T = cfg.timesteps if T is None else T
 
+        if transition_mat_type == "absorbing" and beta_type is None:
+            beta_type = "jsd"
         beta_start = 3e-4 if beta_start is None else beta_start
         beta_end = 0.5 if beta_end is None else beta_end
         beta_type = "cosine" if beta_type is None else beta_type
@@ -517,6 +543,7 @@ class D3PM:
         *,
         loss_type: LossType = "hybrid",
         hybrid_coeff: float = 1.0,
+        transition_mat_type: TransitionMatType = "uniform",
     ) -> None:
         self.model = model
         self.schedule = schedule
@@ -524,7 +551,7 @@ class D3PM:
             betas=schedule.betas,
             model_prediction="x_start",
             model_output="logits",
-            transition_mat_type="uniform",
+            transition_mat_type=transition_mat_type,
             transition_bands=None,
             loss_type=loss_type,
             hybrid_coeff=hybrid_coeff,
@@ -538,7 +565,7 @@ class D3PM:
 
     @property
     def V(self) -> int:
-        return self.core.num_pixel_vals
+        return self.core.num_classes
 
     def loss(
         self,
