@@ -48,7 +48,13 @@ def _conditional_sample(
     x_tgt = _ensure_matrix(x_tgt.to(device=device, dtype=torch.float32), "x_tgt")
     x_context = _ensure_matrix(x_context.to(device=device, dtype=torch.float32), "x_context")
     y_context = _ensure_matrix(y_context.to(device=device), "y_context")
+    # Pad one-hot if the process expects an extra absorbing class.
+    target_vocab = process.V
     y_context = _to_one_hot(y_context, num_classes)
+    if target_vocab > num_classes:
+        pad = target_vocab - y_context.size(-1)
+        if pad > 0:
+            y_context = torch.cat([y_context, torch.zeros_like(y_context[..., :pad])], dim=-1)
 
     # Add batch dimension expected by the model/process.
     x_tgt = x_tgt.unsqueeze(0)
@@ -96,7 +102,10 @@ def ddpm_sample(
         progress=progress,
         progress_desc=progress_desc,
     )
-    return samples.squeeze(0)
+    out = samples.squeeze(0)
+    if out.ndim == 2 and out.size(-1) > num_classes:
+        out = out[..., :num_classes]
+    return out
 
 
 def ddim_sample(
@@ -127,4 +136,7 @@ def ddim_sample(
         progress=progress,
         progress_desc=progress_desc,
     )
-    return samples.squeeze(0)
+    out = samples.squeeze(0)
+    if out.ndim == 2 and out.size(-1) > num_classes:
+        out = out[..., :num_classes]
+    return out

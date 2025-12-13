@@ -24,6 +24,9 @@ class DiffusionConfig:
     beta_start: float = 3e-4
     beta_end: float = 0.5
     timesteps: int = 500
+    transition_mat_type: str = "uniform"  # "uniform" or "absorbing"
+    use_absorbing: bool = False
+    transition_mat_type: str = "uniform"
 
 
 @dataclass

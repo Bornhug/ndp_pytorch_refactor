@@ -150,6 +150,10 @@ class NanoTabPFNClassifier:
         if logits.ndim == 1:
             logits = logits.unsqueeze(-1)
 
+        # Drop absorbing channel if present
+        if logits.shape[-1] > self.num_classes:
+            logits = logits[..., : self.num_classes]
+
         # Multi-channel logits (should not occur with scalar labels but handled for safety)
         if logits.shape[-1] > 1:
             return torch.softmax(logits, dim=-1).numpy()
@@ -611,9 +615,12 @@ def load_checkpoint(checkpoint_path: Path, device: torch.device):
     config_dict = checkpoint["config"]
     
     # Reconstruct model
+    use_absorbing = config_dict["diffusion"].get("use_absorbing", False)
+    vocab_size = config_dict["model"]["num_outputs"] + (1 if use_absorbing else 0)
+
     model = NanoTabPFNModel(
         num_features=config_dict["model"]["num_features"],
-        num_outputs=config_dict["model"]["num_outputs"],
+        num_outputs=vocab_size,
         embedding_size=config_dict["model"]["embedding_size"],
         num_attention_heads=config_dict["model"]["num_attention_heads"],
         num_layers=config_dict["model"]["num_layers"],
@@ -626,16 +633,20 @@ def load_checkpoint(checkpoint_path: Path, device: torch.device):
     model.to(device)
     model.eval()
     
-    # Reconstruct diffusion process (uniform replacement)
+    # Reconstruct diffusion process honoring saved config (with optional absorbing)
+    trans_type = config_dict["diffusion"].get("transition_mat_type", "uniform")
+    beta_type = "jsd" if use_absorbing else config_dict["diffusion"].get("schedule", "cosine")
     schedule = D3PMSchedule.make_uniform(
         T=config_dict["diffusion"]["timesteps"],
-        vocab_size=config_dict["model"]["num_outputs"],
+        vocab_size=vocab_size,
         beta_start=config_dict["diffusion"]["beta_start"],
         beta_end=config_dict["diffusion"]["beta_end"],
+        beta_type=beta_type,
+        transition_mat_type=trans_type,
         device=device,
         dtype=torch.float32,
     )
-    process = D3PM(model, schedule)
+    process = D3PM(model, schedule, transition_mat_type=trans_type)
     
     return model, process, config_dict
 

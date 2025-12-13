@@ -501,7 +501,7 @@ class D3PMSchedule:
         vocab_size: int,
         beta_start: Optional[float] = None,
         beta_end: Optional[float] = None,
-        beta_type: Optional[Literal["cosine", "linear"]] = None,
+        beta_type: Optional[Literal["cosine", "linear", "jsd"]] = None,
         device: torch.device | str = "cpu",
         dtype: Optional[torch.dtype] = None,
         transition_mat_type: TransitionMatType = "uniform",
@@ -515,12 +515,16 @@ class D3PMSchedule:
             beta_end = cfg.beta_end if beta_end is None else beta_end
             beta_type = cfg.schedule if beta_type is None else beta_type
             T = cfg.timesteps if T is None else T
+            transition_mat_type = getattr(cfg, "transition_mat_type", transition_mat_type)
 
-        if transition_mat_type == "absorbing" and beta_type is None:
-            beta_type = "jsd"
+        # For absorbing, default to JSD unless explicitly overridden.
+        if transition_mat_type == "absorbing":
+            beta_type = "jsd" if beta_type is None else beta_type
+        else:
+            beta_type = "cosine" if beta_type is None else beta_type
+
         beta_start = 3e-4 if beta_start is None else beta_start
         beta_end = 0.5 if beta_end is None else beta_end
-        beta_type = "cosine" if beta_type is None else beta_type
         T = 500 if T is None else T
 
         spec = BetaSpec(type=beta_type, start=beta_start, stop=beta_end, num_timesteps=T)

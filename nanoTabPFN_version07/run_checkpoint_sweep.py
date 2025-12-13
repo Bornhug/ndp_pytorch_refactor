@@ -33,7 +33,7 @@ from evaluation import (  # type: ignore
 def _get_run_paths() -> Dict[str, Path]:
     """Return key paths for the W&B run and evaluation outputs."""
     # Adjust the run id below as needed when sweeping a different run.
-    run_dir = HERE / "wandb" / "run-20251208_170937-ykrwl1qd"
+    run_dir = HERE / "wandb" / "run-20251213_003303-9fjvqsli"
     files_dir = run_dir / "files"
     eval_dir = run_dir / "evaluation"
     eval_dir.mkdir(parents=True, exist_ok=True)

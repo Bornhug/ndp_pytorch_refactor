@@ -284,6 +284,7 @@ def train(
 
         y_tgt_raw = torch.as_tensor(batch.y_target, device=device)
         y_ctx_raw = torch.as_tensor(batch.y_context, device=device)
+        # Pad one-hot to vocab_size (adds absorbing channel if enabled)
         y_tgt = to_one_hot_labels(y_tgt_raw, model.num_classes)
         y_ctx = to_one_hot_labels(y_ctx_raw, model.num_classes)
 
@@ -410,26 +411,35 @@ def main() -> None:
     else:
         print("No corrupted tasks found.")
     
+    vocab_size = config.model.num_outputs + (1 if config.diffusion.use_absorbing else 0)
+
     model = NanoTabPFNModel(
         num_features=config.model.num_features,
-        num_outputs=config.model.num_outputs,
+        num_outputs=vocab_size,
         embedding_size=config.model.embedding_size,
         num_attention_heads=config.model.num_attention_heads,
         num_layers=config.model.num_layers,
     )
 
-    # Build discrete diffusion process (uniform replacement) on the same device.
+    # Build discrete diffusion process on the same device, honoring config.
+    transition_type = "absorbing" if config.diffusion.use_absorbing else getattr(config.diffusion, "transition_mat_type", "uniform")
+    beta_type = "jsd" if config.diffusion.use_absorbing else config.diffusion.schedule
+
     schedule = D3PMSchedule.make_uniform(
         T=config.diffusion.timesteps,
-        vocab_size=config.model.num_outputs,
+        vocab_size=vocab_size,
         beta_start=config.diffusion.beta_start,
         beta_end=config.diffusion.beta_end,
-        beta_type="jsd",
-        transition_mat_type="absorbing",
+        beta_type=beta_type,
+        transition_mat_type=transition_type,
         device=device,
         dtype=torch.float32,
     )
-    process = D3PM(model, schedule, transition_mat_type="absorbing")
+    process = D3PM(
+        model,
+        schedule,
+        transition_mat_type=transition_type,
+    )
 
     prior = PriorDumpDataLoader(
         h5_path,
