@@ -1,0 +1,11 @@
+Train:
+python nanoTabPFN_version09\train.py
+
+
+Evaluation:
+DDIM:
+python nanoTabPFN_version09\run_checkpoint_sweep02.py --checkpoints-dir nanoTabPFN_version09\wandb\run-20260105_133917-8exk3si2\files --sampling-method ddim --num-sampling-steps 1 --n-splits 5 --n-repeats 5 --output-json nanoTabPFN_version09\wandb\run-20260105_133917-8exk3si2\files\results.json --plot-path auto
+DDPM:
+python nanoTabPFN_version09\run_checkpoint_sweep02.py --checkpoints-dir nanoTabPFN_version09\wandb\run-20260105_133917-8exk3si2\files --sampling-method ddpm --num-sampling-steps 500 --n-splits 2 --n-repeats 1 --output-json nanoTabPFN_version09\wandb\run-20260105_133917-8exk3si2\files\results.json --plot-path auto
+
+
