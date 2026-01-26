@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 """
 Plotting utility for sweep02_results.json produced by run_checkpoint_sweep02.py.
 

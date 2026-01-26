@@ -6,6 +6,7 @@ python nanoTabPFN_version09/train.py --loss-type kl
 /venv/main/bin/python nanoTabPFN_version09/train.py --loss-type hybrid --hybrid-coeff 0.5
 
 
+
 Evaluation02:
 DDIM:
 python nanoTabPFN_version09/run_checkpoint_sweep02.py --checkpoints-dir nanoTabPFN_version09/wandb/run-20260117_155153-a6q0mr2p/files --sampling-method ddpm --num-sampling-steps 500 --n-splits 2 --n-repeats 1 --output-json nanoTabPFN_version09/wandb/run-20260117_155153-a6q0mr2p/files/results.json --plot-path auto

@@ -4,6 +4,7 @@ Inference utilities for conditional NDP without RePaint sampling.
 
 from __future__ import annotations
 
+
 from typing import Optional
 
 import torch
