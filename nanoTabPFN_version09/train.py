@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import random
 from dataclasses import asdict
 from pathlib import Path
@@ -253,7 +254,7 @@ def train(
     num_timesteps: int,
     config: Config,
     device: torch.device | None = None,
-    loss_type: str = "l1",
+    loss_type: str = "hybrid",
     steps_per_epoch: int,
     checkpoint_dir: Path,
     checkpoint_interval: int = 10_000,
@@ -416,14 +417,42 @@ def train(
     return model, {"loss": losses, "grad_norm": grad_norms, "lr": lrs}
 
 
+def _resolve_loss_type(loss_type: str) -> str:
+    loss_type = loss_type.lower()
+    if loss_type == "ce":
+        return "cross_entropy_x_start"
+    return loss_type
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Train nanoTabPFN (version09).")
+    parser.add_argument(
+        "--loss-type",
+        default="hybrid",
+        choices=["kl", "ce", "hybrid", "cross_entropy_x_start"],
+        help="Loss to use: kl, ce (cross-entropy), or hybrid.",
+    )
+    parser.add_argument(
+        "--hybrid-coeff",
+        type=float,
+        default=1.0,
+        help="Weight for CE term in hybrid loss (ignored for kl/ce).",
+    )
+    args = parser.parse_args()
+
+    loss_type = _resolve_loss_type(args.loss_type)
+    hybrid_coeff = float(args.hybrid_coeff)
+
     config = Config()
     device = get_default_device()
+
+    run_config = asdict(config)
+    run_config.update({"loss_type": loss_type, "hybrid_coeff": hybrid_coeff})
 
     run = wandb.init(
         project="nanoTabPFN",
         name="nanoTabPFN-train",
-        config=asdict(config),
+        config=run_config,
         dir=str(HERE),
     )
     run_dir = Path(run.dir) if run is not None else HERE
@@ -468,6 +497,8 @@ def main() -> None:
     process = D3PM(
         model,
         schedule,
+        loss_type=loss_type,
+        hybrid_coeff=hybrid_coeff,
         transition_mat_type=transition_type,
     )
 
@@ -495,7 +526,7 @@ def main() -> None:
         num_timesteps=config.diffusion.timesteps,
         config=config,
         device=device,
-        loss_type="kl",
+        loss_type=loss_type,
         steps_per_epoch=steps_per_epoch,
         checkpoint_dir=run_dir,
     )

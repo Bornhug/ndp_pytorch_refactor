@@ -69,7 +69,13 @@ class TrainingConfig:
         Resolve the H5 path relative to this file's directory.
         """
         here = Path(__file__).resolve().parent
-        return here / self.h5_path
+        candidate = here / self.h5_path
+        if candidate.exists():
+            return candidate
+        candidate_parent = here.parent / self.h5_path
+        if candidate_parent.exists():
+            return candidate_parent
+        return candidate
 
     @property
     def steps_per_epoch(self) -> int:

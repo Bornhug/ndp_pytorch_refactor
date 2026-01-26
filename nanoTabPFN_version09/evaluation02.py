@@ -11,7 +11,9 @@ This script mirrors the evaluation protocol used in the referenced notebook/scri
 
 from __future__ import annotations
 
+import os
 import sys
+import shutil
 from pathlib import Path
 from typing import Dict, Tuple, Optional
 
@@ -36,6 +38,10 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
+
+SKLEARN_DATA_HOME = Path(
+    os.environ.get("SCIKIT_LEARN_DATA", str(ROOT / ".sklearn_data"))
+).resolve()
 
 from evaluation import NanoTabPFNClassifier  # reuse sklearn-like wrapper
 
@@ -67,7 +73,30 @@ def _fetch_task_data_as_dataframe(task, dataset, *, verbose: bool = False) -> tu
                 f"(openml/minio incompatibility: {e})",
                 flush=True,
             )
-        bunch = fetch_openml(data_id=int(task.dataset_id), as_frame=True)
+        data_home = str(SKLEARN_DATA_HOME)
+        try:
+            bunch = fetch_openml(
+                data_id=int(task.dataset_id),
+                as_frame=True,
+                data_home=data_home,
+            )
+        except ValueError as fetch_err:
+            # Clean cached OpenML files on md5 mismatch, then retry once.
+            if "md5 checksum" not in str(fetch_err).lower():
+                raise
+            cache_dir = SKLEARN_DATA_HOME / "openml"
+            if cache_dir.exists():
+                shutil.rmtree(cache_dir)
+            if verbose:
+                print(
+                    f"  Cleared sklearn OpenML cache at {cache_dir} after md5 mismatch; retrying.",
+                    flush=True,
+                )
+            bunch = fetch_openml(
+                data_id=int(task.dataset_id),
+                as_frame=True,
+                data_home=data_home,
+            )
         frame = bunch.frame
         if frame is None:
             raise
@@ -233,7 +262,7 @@ def get_openml_datasets(
 
         if (
             int(qualities["NumberOfFeatures"]) > 100
-            or int(qualities["NumberOfClasses"]) > 10
+            or int(qualities["NumberOfClasses"]) > target_classes_filter
             or float(qualities["PercentageOfInstancesWithMissingValues"]) > 0.0
             or float(qualities["MinorityClassPercentage"]) < 2.5
         ):

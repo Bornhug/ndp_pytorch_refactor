@@ -98,7 +98,7 @@ def sweep_checkpoints(
                 new_instances_eval=new_instances_eval,
                 target_classes_filter=target_classes_filter,
                 random_state=seed,
-                verbose=False,
+                verbose=True,
             )
             if not datasets:
                 print("    No datasets after filtering; skipping this repeat.")
