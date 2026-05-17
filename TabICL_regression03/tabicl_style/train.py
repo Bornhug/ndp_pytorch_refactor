@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import math
 import sys
 from contextlib import nullcontext
 from dataclasses import asdict
@@ -29,6 +28,7 @@ from neural_diffusion_processes.process import (
     cosine_schedule,
     loss as diffusion_loss,
 )
+from neural_diffusion_processes.regressor import NDPRegressor
 from neural_diffusion_processes.types import Batch
 
 from tabicl_style.batching import (
@@ -39,26 +39,101 @@ from tabicl_style.batching import (
 )
 from tabicl_style.config import Config
 from tabicl_style.data import build_dataloader, build_dataset
-from tabicl_style.model import NDPRegressor
-from tabicl_style.utils import normalize_y, set_seed, split_context_target
+from tabicl_style.utils import (
+    compute_lr_from_schedule_steps,
+    infer_lr_schedule_steps,
+    normalize_y,
+    set_seed,
+    split_context_target,
+)
 
 
 # ---------------------------------------------------------------------------
 # Model + process construction
 # ---------------------------------------------------------------------------
 
+def configure_torch_runtime(config: Config) -> None:
+    """Apply PyTorch process-wide performance settings.
+
+    This currently controls float32 matrix multiplication precision. It is run
+    before model construction so linear layers and attention use the configured
+    matmul behavior for the whole training process.
+    """
+    precision = getattr(config.training, "float32_matmul_precision", None)
+    if precision:
+        torch.set_float32_matmul_precision(str(precision))
+
+
+def unwrap_compiled_model(model: nn.Module) -> nn.Module:
+    """Return the original eager model behind a ``torch.compile`` wrapper.
+
+    ``torch.compile`` wraps the module and stores the original model in
+    ``_orig_mod``. Checkpointing, gradient clipping, and EMA should operate on
+    the real parameters, so callers use this helper before touching weights.
+    """
+    return getattr(model, "_orig_mod", model)
+
+
+def model_state_dict(model: nn.Module):
+    """Return checkpoint weights with the same keys for eager/compiled models.
+
+    Without unwrapping, a compiled model would save keys prefixed by the
+    wrapper. Saving the eager module state keeps checkpoints loadable regardless
+    of whether training used ``torch.compile``.
+    """
+    return unwrap_compiled_model(model).state_dict()
+
+
+def maybe_compile_model(model: nn.Module, config: Config) -> nn.Module:
+    """Compile the model only when ``training.torch_compile`` is enabled.
+
+    Compilation is optional because it can improve steady-state throughput but
+    adds startup cost and may be harder to debug. The returned object should be
+    used for forward/backward, while helper functions unwrap it when raw
+    parameter access is needed.
+    """
+    if not bool(getattr(config.training, "torch_compile", False)):
+        return model
+    mode = str(getattr(config.training, "torch_compile_mode", "reduce-overhead"))
+    return torch.compile(model, mode=mode)
+
+
+def build_diffusion_betas(config: Config) -> torch.Tensor:
+    """Create the fixed diffusion noise schedule from config.
+
+    The rest of training consumes the resulting beta tensor through
+    ``GaussianDiffusion``. Only the ``cosine`` schedule is currently supported,
+    so unsupported names fail early instead of silently changing behavior.
+    """
+    schedule = str(config.diffusion.schedule).strip().lower()
+    if schedule == "cosine":
+        return cosine_schedule(
+            config.diffusion.beta_start,
+            config.diffusion.beta_end,
+            config.diffusion.timesteps,
+        )
+    raise ValueError(
+        f"Unsupported diffusion schedule {config.diffusion.schedule!r}. "
+        "Supported schedules: 'cosine'."
+    )
+
+
 def build_model_and_process(config: Config, device: torch.device):
+    """Construct the denoising model and diffusion process for training.
+
+    The model predicts epsilon noise for normalized scalar targets. The process
+    owns the fixed beta/alpha schedule used by both training loss and sampling.
+    Both objects are moved to the requested training device before returning.
+    """
+    configure_torch_runtime(config)
     model = NDPRegressor(
         embedding_size=config.model.embedding_size,
         num_attention_heads=config.model.num_attention_heads,
         num_layers=config.model.num_layers,
+        num_timesteps=config.diffusion.timesteps,
     ).to(device)
 
-    betas = cosine_schedule(
-        config.diffusion.beta_start,
-        config.diffusion.beta_end,
-        config.diffusion.timesteps,
-    ).to(device)
+    betas = build_diffusion_betas(config).to(device)
     process = GaussianDiffusion(betas)
 
     return model, process
@@ -69,9 +144,19 @@ def build_model_and_process(config: Config, device: torch.device):
 # ---------------------------------------------------------------------------
 
 class EMA:
-    """Exponential Moving Average of model parameters."""
+    """Maintain a smoothed copy of model weights for evaluation/checkpoints.
+
+    Training updates the live model every optimizer step. EMA keeps a frozen
+    shadow model whose weights change more slowly, which usually gives more
+    stable evaluation samples for diffusion-style models.
+    """
 
     def __init__(self, model: nn.Module, decay: float = 0.995):
+        """Create the shadow model and disable gradients on it.
+
+        The shadow starts as an exact deep copy. It is never used for backward;
+        ``update`` moves it toward the live model after optimizer steps.
+        """
         self.decay = decay
         self.shadow = copy.deepcopy(model)
         self.shadow.eval()
@@ -80,48 +165,30 @@ class EMA:
 
     @torch.no_grad()
     def update(self, model: nn.Module) -> None:
-        for s_param, m_param in zip(self.shadow.parameters(), model.parameters()):
+        """Blend live weights into the shadow weights after one optimizer step.
+
+        For each parameter, the update is:
+        ``shadow = decay * shadow + (1 - decay) * live``.
+        """
+        source_model = unwrap_compiled_model(model)
+        for s_param, m_param in zip(self.shadow.parameters(), source_model.parameters()):
             s_param.data.mul_(self.decay).add_(m_param.data, alpha=1.0 - self.decay)
 
     def state_dict(self):
+        """Return EMA weights so checkpoints can save the smoothed model."""
         return self.shadow.state_dict()
 
     def load_state_dict(self, state_dict):
+        """Restore EMA weights when resuming training from a checkpoint."""
         self.shadow.load_state_dict(state_dict)
 
 
-# ---------------------------------------------------------------------------
-# LR schedule
-# ---------------------------------------------------------------------------
-
-def compute_lr(config: Config, step: int, *, total_steps: int) -> float:
-    if total_steps <= 0:
-        return config.optimizer.end_lr
-
-    warmup_steps = max(1, int(round(total_steps * 0.10)))
-    warmup_steps = min(warmup_steps, total_steps)
-    decay_steps = max(1, int(round(total_steps * 0.8)))
-    decay_steps = max(0, min(decay_steps, total_steps - warmup_steps))
-
-    init_lr = config.optimizer.init_lr
-    peak_lr = config.optimizer.peak_lr
-    end_lr = config.optimizer.end_lr
-
-    if step <= warmup_steps:
-        if warmup_steps == 0:
-            return peak_lr
-        alpha = step / float(warmup_steps)
-        return init_lr + (peak_lr - init_lr) * alpha
-
-    if decay_steps <= 0:
-        return end_lr
-
-    t = min(step - warmup_steps, decay_steps)
-    cosine = 0.5 * (1.0 + math.cos(math.pi * t / float(decay_steps)))
-    return end_lr + (peak_lr - end_lr) * cosine
-
-
 def compute_grad_norm(parameters) -> torch.Tensor:
+    """Compute the global L2 norm over all available gradients.
+
+    Parameters without gradients are ignored. This is used when gradient
+    clipping is disabled so logs still report the true accumulated grad norm.
+    """
     if not parameters:
         return torch.tensor(0.0)
     total = torch.zeros((), device=parameters[0].device)
@@ -137,20 +204,35 @@ def compute_grad_norm(parameters) -> torch.Tensor:
 # ---------------------------------------------------------------------------
 
 def infer_steps_per_epoch(config: Config) -> int:
+    """Infer epoch length from pre-generated prior batch files.
+
+    Training is pre-generated-prior-only: every ``batch_*.pt`` file in
+    ``training.prior_dir`` counts as one optimizer step. Missing or empty
+    directories fail early because there is no live-generation fallback.
+    """
     prior_dir = config.training.prior_dir
-    if prior_dir:
-        p = Path(prior_dir)
-        if p.is_dir():
-            count = len(list(p.glob("batch_*.pt")))
-            if count > 0:
-                return count
-    spe = config.training.samples_per_epoch
-    if spe > 0:
-        return max(1, int(spe // config.training.batch_size))
-    return 1
+    if prior_dir is None:
+        raise ValueError(
+            "training.prior_dir is required; live TabICL prior generation is "
+            "not supported in TabICL_regression03 training."
+        )
+
+    p = Path(prior_dir).expanduser()
+    if not p.is_dir():
+        raise FileNotFoundError(f"prior_dir not found: {p}")
+
+    count = len(list(p.glob("batch_*.pt")))
+    if count <= 0:
+        raise FileNotFoundError(f"no pre-generated batch_*.pt files found in {p}")
+    return count
 
 
 def should_save_checkpoint(step: int, total_steps: int, save_every: int) -> bool:
+    """Return whether the current global step should write a checkpoint.
+
+    ``save_every <= 0`` disables periodic checkpointing. ``total_steps`` is
+    accepted for a stable call shape but is not needed by the current policy.
+    """
     del total_steps
     if save_every <= 0:
         return False
@@ -162,7 +244,20 @@ def should_save_checkpoint(step: int, total_steps: int, save_every: int) -> bool
 # ---------------------------------------------------------------------------
 
 class Trainer:
+    """Stateful training driver for one NDP regression run.
+
+    ``Trainer`` owns everything that changes during training: model weights,
+    EMA weights, optimizer state, data iterator position, diffusion RNG, current
+    global step, checkpointing, and optional wandb logging.
+    """
+
     def __init__(self, config: Config):
+        """Initialize model, optimizer, data, schedules, logging, and checkpoint state.
+
+        The constructor is intentionally heavy: after it returns, ``train`` can
+        start immediately. If ``checkpoint_path`` or ``checkpoint_dir`` is set,
+        model/optimizer/EMA state is restored before optional compilation.
+        """
         self.config = config
         tc = config.training
         self.device = torch.device(tc.device)
@@ -182,9 +277,9 @@ class Trainer:
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
         if self.amp:
             dtype = torch.float16 if tc.dtype == "float16" else torch.float32
-            self.amp_ctx = torch.autocast(device_type="cuda", dtype=dtype)
+            self.amp_context = torch.autocast(device_type="cuda", dtype=dtype)
         else:
-            self.amp_ctx = nullcontext()
+            self.amp_context = nullcontext()
 
         self.reset_data_iter()
 
@@ -196,6 +291,10 @@ class Trainer:
         self.total_steps = int(self.steps_per_epoch * tc.num_epochs)
         if self.total_steps <= 0:
             raise ValueError("Total training steps must be positive.")
+        self.lr_warmup_steps, self.lr_decay_steps = infer_lr_schedule_steps(
+            config,
+            self.total_steps,
+        )
 
         self.wandb_run = None
         self._wandb_log_failed = False
@@ -221,12 +320,19 @@ class Trainer:
             latest = self.get_latest_checkpoint(Path(tc.checkpoint_dir))
             if latest:
                 self.load_checkpoint(latest)
+        self.model = maybe_compile_model(self.model, config)
 
     # ------------------------------------------------------------------
     # Data
     # ------------------------------------------------------------------
 
     def reset_data_iter(self) -> None:
+        """Recreate the dataset, DataLoader, and iterator.
+
+        This is called at construction and at every epoch boundary. Rebuilding
+        the iterator lets generated or disk-backed prior batches restart cleanly
+        for the next epoch.
+        """
         tc = self.config.training
         dataset = build_dataset(tc)
         self.dataloader = build_dataloader(tc, dataset)
@@ -237,12 +343,24 @@ class Trainer:
     # ------------------------------------------------------------------
 
     def get_latest_checkpoint(self, ckpt_dir: Path) -> Path | None:
+        """Find the latest checkpoint file in a checkpoint directory.
+
+        Returns ``None`` when the directory does not exist or contains no
+        ``step-*.pt`` files. The current naming scheme sorts correctly because
+        step numbers are appended to the filename.
+        """
         if not ckpt_dir.is_dir():
             return None
         ckpts = sorted(ckpt_dir.glob("step-*.pt"))
         return ckpts[-1] if ckpts else None
 
     def load_checkpoint(self, path: str | Path) -> None:
+        """Restore training state from a checkpoint.
+
+        New-format checkpoints contain model weights, EMA weights, optimizer
+        state, and ``curr_step``. A plain state dict is also accepted for older
+        checkpoints, but that path restores only model weights.
+        """
         ckpt = torch.load(path, map_location=self.device)
         if "state_dict" in ckpt:
             self.model.load_state_dict(ckpt["state_dict"])
@@ -256,6 +374,11 @@ class Trainer:
         print(f"Loaded checkpoint from {path}")
 
     def save_checkpoint(self, step: int) -> None:
+        """Write model, EMA, optimizer, step, and config to disk.
+
+        The model state is unwrapped before saving so checkpoints remain
+        compatible whether the live model is eager or compiled.
+        """
         tc = self.config.training
         if not tc.checkpoint_dir:
             return
@@ -263,7 +386,7 @@ class Trainer:
         ckpt_dir.mkdir(parents=True, exist_ok=True)
         ckpt_path = ckpt_dir / f"step-{step}.pt"
         payload = {
-            "state_dict": self.model.state_dict(),
+            "state_dict": model_state_dict(self.model),
             "ema_state_dict": self.ema.state_dict(),
             "optimizer_state": self.optimizer.state_dict(),
             "curr_step": step,
@@ -277,12 +400,30 @@ class Trainer:
     # ------------------------------------------------------------------
 
     def _assert_finite(self, name: str, tensor: torch.Tensor) -> None:
+        """Reject NaN/Inf tensors before they can corrupt an optimizer update."""
         if tensor.is_floating_point() and not torch.isfinite(tensor).all():
             raise FloatingPointError(f"non-finite {name}")
 
     def run_micro_batch(
         self, micro_batch, micro_batch_idx: int, num_micro_batches: int
     ) -> Dict[str, float]:
+        """Run one gradient-accumulation slice of a training batch.
+
+        A DataLoader batch can contain many independent tabular tasks. To keep
+        memory bounded, ``run_batch`` splits it into smaller micro-batches and
+        calls this method for each slice.
+
+        This method does four things:
+        1. moves one slice to the training device and splits it into
+           context/target points;
+        2. normalizes y values using context statistics and filters unstable
+           tasks;
+        3. computes the diffusion denoising loss on the remaining tasks;
+        4. calls backward on a scaled loss so gradients accumulate correctly.
+
+        It does not call ``optimizer.step``. It returns loss/filtering stats so
+        ``run_batch`` can decide whether the full update is safe to apply.
+        """
         del micro_batch_idx
         micro_X, micro_y, micro_d, micro_seq_len, micro_train_size = micro_batch
         seq_len, train_size = validate_micro_batch(micro_seq_len, micro_train_size)
@@ -298,13 +439,17 @@ class Trainer:
         )
         tc = self.config.training
 
-        # y normalization: z-score using context stats
+        # Normalize both context and target y with context statistics. The
+        # diffusion model trains on normalized y, while evaluation later
+        # denormalizes predictions back to the original target scale.
         y_context_norm, y_target_norm, _mean, _std = normalize_y(y_context, y_target)
-        # y_context_norm / y_target_norm are [B, N, 1]
 
         y_context_stats = y_context.unsqueeze(-1) if y_context.ndim == 2 else y_context
         raw_std = y_context_stats.std(dim=1, keepdim=True, unbiased=False)  # [B,1,1]
 
+        # Drop pathological tasks before backward. Tiny context variance makes
+        # z-score normalization unstable, and extreme normalized targets can
+        # dominate a whole update.
         tiny_std_task = raw_std.squeeze(-1).squeeze(-1) < float(tc.std_min)  # [B]
         hard_outlier_frac = (
             (y_target_norm.abs() > float(tc.hard_z_threshold))
@@ -318,6 +463,8 @@ class Trainer:
         )
         valid_task = (~tiny_std_task) & (~extreme_task) & finite_task
 
+        # Clamp remaining normalized values to bound the loss scale without
+        # dropping otherwise usable tasks.
         clipped_target_values = int(
             (y_target_norm.abs() > float(tc.z_max)).sum().item()
         )
@@ -347,23 +494,14 @@ class Trainer:
         y_context_norm = y_context_norm[valid_task]
         y_target_norm = y_target_norm[valid_task]
 
-        mask_context = torch.zeros(
-            x_context.shape[:2], device=self.device, dtype=torch.float32
-        )
-        mask_target = torch.zeros(
-            x_target.shape[:2], device=self.device, dtype=torch.float32
-        )
-
         batch = Batch(
             x_target=x_target,
             y_target=y_target_norm,
             x_context=x_context,
             y_context=y_context_norm,
-            mask_target=mask_target,
-            mask_context=mask_context,
         )
 
-        with self.amp_ctx:
+        with self.amp_context:
             loss = diffusion_loss(
                 self.process,
                 self.model,
@@ -376,6 +514,8 @@ class Trainer:
         if not torch.isfinite(loss):
             raise FloatingPointError("non-finite loss")
 
+        # Divide by the number of micro-batches so accumulated gradients match
+        # the scale of a single full-batch backward pass.
         scaled_loss = loss / float(num_micro_batches)
         if self.amp:
             self.scaler.scale(scaled_loss).backward()
@@ -385,9 +525,27 @@ class Trainer:
         return {"loss": float(loss.item()), "skipped_micro": False, **stats}
 
     def run_batch(self, batch, *, step: int) -> Dict[str, float]:
+        """Run one global training step and maybe update model weights.
+
+        The incoming batch is first padded and split into micro-batches. Each
+        valid micro-batch backpropagates into the same parameter gradients.
+        After all slices are processed, this method performs the operations
+        that should happen exactly once per global step:
+
+        1. discard accumulated gradients if a numerical failure was detected;
+        2. unscale AMP gradients when needed;
+        3. clip or measure the accumulated gradient norm;
+        4. set the learning rate for this step;
+        5. step the optimizer and update EMA weights.
+
+        The returned dictionary is the single source for progress-bar and wandb
+        training metrics.
+        """
         self.model.train()
         self.optimizer.zero_grad(set_to_none=True)
 
+        # TabICL batches can contain nested tensors with different shapes. Pad
+        # once at the full-batch level, then split by task count for memory.
         batch = pad_nested_batch(batch)
         micro_batches, num_micro_batches = split_micro_batches(
             batch, self.config.training.micro_batch_size
@@ -408,6 +566,9 @@ class Trainer:
         skip_update = False
         skip_reason = ""
 
+        # Each successful micro-batch contributes gradients. Skipped
+        # micro-batches contribute stats only, so a few bad tasks do not waste
+        # the whole DataLoader batch.
         iterable = micro_batches
         if self.config.training.micro_progress:
             iterable = tqdm(
@@ -454,9 +615,16 @@ class Trainer:
         if failed_batches / max(1, num_micro_batches) > 0.1:
             raise RuntimeError("Too many micro-batches failed due to OOM.")
 
+        # A numerical failure means some gradients may already be contaminated,
+        # so discard the whole accumulated update.
         if skip_update:
             self.optimizer.zero_grad(set_to_none=True)
-            lr = compute_lr(self.config, step, total_steps=self.total_steps)
+            lr = compute_lr_from_schedule_steps(
+                self.config,
+                step,
+                warmup_steps=self.lr_warmup_steps,
+                decay_steps=self.lr_decay_steps,
+            )
             return {
                 "loss": float("nan"),
                 "skipped": True,
@@ -472,9 +640,16 @@ class Trainer:
                 "skipped_micro_batches": int(results["skipped_micro_batches"]),
             }
 
+        # If every micro-batch was filtered or failed safely, leave weights
+        # unchanged and report the skip instead of stepping on empty gradients.
         if processed == 0:
             self.optimizer.zero_grad(set_to_none=True)
-            lr = compute_lr(self.config, step, total_steps=self.total_steps)
+            lr = compute_lr_from_schedule_steps(
+                self.config,
+                step,
+                warmup_steps=self.lr_warmup_steps,
+                decay_steps=self.lr_decay_steps,
+            )
             return {
                 "loss": float("nan"),
                 "skipped": True,
@@ -490,18 +665,26 @@ class Trainer:
                 "skipped_micro_batches": int(results["skipped_micro_batches"]),
             }
 
-        # Gradient unscale + clip
+        # AMP gradients must be unscaled before clipping; otherwise the clip
+        # threshold would be applied to scaled values rather than true grads.
         if self.amp:
             self.scaler.unscale_(self.optimizer)
+        trainable_model = unwrap_compiled_model(self.model)
         if self.config.training.gradient_clipping > 0:
             grad_norm = nn.utils.clip_grad_norm_(
-                self.model.parameters(), self.config.training.gradient_clipping
+                trainable_model.parameters(),
+                self.config.training.gradient_clipping,
             )
         else:
-            grad_norm = compute_grad_norm(list(self.model.parameters()))
+            grad_norm = compute_grad_norm(list(trainable_model.parameters()))
 
-        # LR schedule
-        lr = compute_lr(self.config, step, total_steps=self.total_steps)
+        # The LR is computed once per optimizer update, not per micro-batch.
+        lr = compute_lr_from_schedule_steps(
+            self.config,
+            step,
+            warmup_steps=self.lr_warmup_steps,
+            decay_steps=self.lr_decay_steps,
+        )
         for group in self.optimizer.param_groups:
             group["lr"] = lr
 
@@ -512,7 +695,7 @@ class Trainer:
         else:
             self.optimizer.step()
 
-        # EMA update
+        # EMA tracks the post-update weights and is saved/evaluated separately.
         self.ema.update(self.model)
 
         if processed > 0:
@@ -527,6 +710,12 @@ class Trainer:
     # ------------------------------------------------------------------
 
     def train(self) -> None:
+        """Run epochs until ``total_steps`` is reached.
+
+        Each loop iteration pulls one DataLoader batch, delegates the actual
+        training step to ``run_batch``, updates progress output, writes periodic
+        checkpoints, and mirrors the same metrics to wandb when enabled.
+        """
         tc = self.config.training
         progress = tqdm(
             total=self.total_steps,
@@ -642,152 +831,12 @@ class Trainer:
 
 
 def main() -> None:
-    import argparse
+    """Entry point used when running this file as a script.
 
-    parser = argparse.ArgumentParser(description="TabICL_regression03 NDP training")
-
-    # Training
-    parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--num-epochs", type=int, default=100)
-    parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--micro-batch-size", type=int, default=8)
-    parser.add_argument("--loss-type", type=str, default="l1", choices=["l1", "l2"])
-    parser.add_argument("--amp", type=str, default="False")
-    parser.add_argument("--num-workers", type=int, default=1)
-    parser.add_argument("--samples-per-epoch", type=int, default=2**14)
-    parser.add_argument(
-        "--std-min",
-        type=float,
-        default=1e-3,
-        help="Skip task when context target std is below this threshold.",
-    )
-    parser.add_argument(
-        "--z-max",
-        type=float,
-        default=10.0,
-        help="Clamp normalized y targets to [-z_max, z_max].",
-    )
-    parser.add_argument(
-        "--hard-z-threshold",
-        type=float,
-        default=30.0,
-        help="Hard outlier threshold on normalized targets for task filtering.",
-    )
-    parser.add_argument(
-        "--max-hard-z-frac",
-        type=float,
-        default=0.05,
-        help="Drop task when fraction(|z| > hard_z_threshold) exceeds this value.",
-    )
-
-    # Model
-    parser.add_argument("--embedding-size", type=int, default=96)
-    parser.add_argument("--num-attention-heads", type=int, default=8)
-    parser.add_argument("--num-layers", type=int, default=5)
-
-    # Diffusion
-    parser.add_argument("--timesteps", type=int, default=500)
-    parser.add_argument("--beta-start", type=float, default=3e-4)
-    parser.add_argument("--beta-end", type=float, default=0.5)
-
-    # Optimizer
-    parser.add_argument("--peak-lr", type=float, default=1e-2)
-    parser.add_argument("--init-lr", type=float, default=2e-4)
-    parser.add_argument("--end-lr", type=float, default=1e-4)
-    parser.add_argument("--ema-rate", type=float, default=0.995)
-    parser.add_argument("--weight-decay", type=float, default=0.0)
-    parser.add_argument("--gradient-clipping", type=float, default=1.0)
-
-    # Data
-    parser.add_argument("--prior-dir", type=str, default=None)
-    parser.add_argument("--tabicl-repo", type=str, default=None)
-    parser.add_argument("--max-features", type=int, default=100)
-    parser.add_argument("--max-seq-len", type=int, default=1024)
-    parser.add_argument("--min-train-size", type=float, default=0.1)
-    parser.add_argument("--max-train-size", type=float, default=0.9)
-
-    # Checkpointing
-    parser.add_argument("--checkpoint-dir", type=str, default=None)
-    parser.add_argument("--checkpoint-path", type=str, default=None)
-    parser.add_argument(
-        "--save-every",
-        type=int,
-        default=10000,
-        help="Save one checkpoint every N training steps; set <= 0 to disable.",
-    )
-
-    # Wandb
-    parser.add_argument("--wandb-log", action="store_true", default=True)
-    parser.add_argument("--no-wandb", dest="wandb_log", action="store_false")
-    parser.add_argument("--wandb-project", type=str, default="TabICL-regression03")
-    parser.add_argument("--wandb-name", type=str, default=None)
-    parser.add_argument("--wandb-mode", type=str, default="offline")
-    parser.add_argument("--wandb-dir", type=str, default=None)
-
-    # Seeds
-    parser.add_argument("--seed", type=int, default=42)
-
-    args = parser.parse_args()
-
-    from tabicl_style.config import (
-        Config,
-        DiffusionConfig,
-        ModelConfig,
-        OptimizerConfig,
-        TrainingConfig,
-    )
-
-    config = Config(
-        model=ModelConfig(
-            embedding_size=args.embedding_size,
-            num_attention_heads=args.num_attention_heads,
-            num_layers=args.num_layers,
-        ),
-        diffusion=DiffusionConfig(
-            timesteps=args.timesteps,
-            beta_start=args.beta_start,
-            beta_end=args.beta_end,
-        ),
-        optimizer=OptimizerConfig(
-            peak_lr=args.peak_lr,
-            init_lr=args.init_lr,
-            end_lr=args.end_lr,
-            ema_rate=args.ema_rate,
-            weight_decay=args.weight_decay,
-        ),
-        training=TrainingConfig(
-            batch_size=args.batch_size,
-            micro_batch_size=args.micro_batch_size,
-            num_epochs=args.num_epochs,
-            samples_per_epoch=args.samples_per_epoch,
-            loss_type=args.loss_type,
-            std_min=args.std_min,
-            z_max=args.z_max,
-            hard_z_threshold=args.hard_z_threshold,
-            max_hard_z_frac=args.max_hard_z_frac,
-            gradient_clipping=args.gradient_clipping,
-            device=args.device,
-            amp=args.amp.lower() == "true",
-            np_seed=args.seed,
-            torch_seed=args.seed,
-            num_workers=args.num_workers,
-            prior_dir=args.prior_dir,
-            tabicl_repo=args.tabicl_repo,
-            max_features=args.max_features,
-            max_seq_len=args.max_seq_len,
-            min_train_size=args.min_train_size,
-            max_train_size=args.max_train_size,
-            checkpoint_dir=args.checkpoint_dir,
-            checkpoint_path=args.checkpoint_path,
-            save_every=args.save_every,
-            wandb_log=args.wandb_log,
-            wandb_project=args.wandb_project,
-            wandb_name=args.wandb_name,
-            wandb_mode=args.wandb_mode,
-            wandb_dir=args.wandb_dir,
-        ),
-    )
-
+    Training currently starts from the dataclass defaults in ``Config``. For
+    custom settings, construct ``Config`` in Python and pass it to ``Trainer``.
+    """
+    config = Config()
     trainer = Trainer(config)
     trainer.train()
 

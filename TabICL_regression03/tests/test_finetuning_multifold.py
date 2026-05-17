@@ -264,14 +264,10 @@ class FinetuningMultifoldTests(unittest.TestCase):
         dataset_a = finetune_evaluation._aggregate_dataset_result(
             dataset_name="dataset_a",
             fold_results=fold_results_a,
-            plot_dataset=None,
-            plot_dir=REPO_DIR / "evaluation_plots",
         )
         dataset_b = finetune_evaluation._aggregate_dataset_result(
             dataset_name="dataset_b",
             fold_results=fold_results_b,
-            plot_dataset=None,
-            plot_dir=REPO_DIR / "evaluation_plots",
         )
 
         self.assertEqual(dataset_a["metrics"]["R2_FOLD_VALUES"], [1.0, 3.0])

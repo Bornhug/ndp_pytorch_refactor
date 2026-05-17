@@ -23,12 +23,12 @@ if str(ROOT) not in sys.path:
 from tabicl_style.evaluation import (
     DEFAULT_MAX_FEATURES_EVAL,
     DEFAULT_NEW_INSTANCES_EVAL,
-    NDPRegressorWrapper,
     TABPFN_REGRESSION_DATASETS,
     _load_checkpoint,
     eval_model,
     get_regression_datasets,
 )
+from neural_diffusion_processes.regressor import NDPRegressorWrapper
 
 
 def _checkpoint_step(path: Path) -> int:
@@ -216,8 +216,6 @@ def sweep_checkpoints(
                 datasets,
                 n_splits=n_splits,
                 random_state=random_state,
-                plot_dataset=None,
-                plot_dir=HERE / "evaluation_plots",
             )
             formatted = _format_metrics(metrics)
             record["overall"] = formatted["overall"]

@@ -28,10 +28,7 @@ from finetuning.common import (
     parse_dataset_names,
     write_json,
 )
-from tabicl_style.evaluation import (
-    _load_checkpoint,
-    _save_normalized_prediction_plot,
-)
+from tabicl_style.evaluation import _load_checkpoint
 
 
 def _load_summary_payload(summary_path: Path) -> dict[str, Any] | None:
@@ -291,8 +288,6 @@ def _aggregate_dataset_result(
     *,
     dataset_name: str,
     fold_results: list[dict[str, Any]],
-    plot_dataset: str | None,
-    plot_dir: Path,
 ) -> dict[str, Any]:
     ordered_folds = sorted(
         fold_results,
@@ -321,15 +316,6 @@ def _aggregate_dataset_result(
         axis=0,
     ).astype(np.float32)
 
-    plot_path: Path | None = None
-    if plot_dataset is not None and dataset_name == plot_dataset:
-        plot_path = _save_normalized_prediction_plot(
-            dataset_name=dataset_name,
-            y_true_norm=y_true_norm,
-            y_pred_norm=y_pred_norm,
-            plot_dir=plot_dir,
-        )
-
     return {
         "dataset_name": dataset_name,
         "n_splits": int(max((fold.get("n_splits", 1) for fold in ordered_folds), default=1)),
@@ -345,7 +331,6 @@ def _aggregate_dataset_result(
         "num_sampling_steps": int(ordered_folds[0]["num_sampling_steps"]),
         "sampling_method": str(ordered_folds[0]["sampling_method"]),
         "ddim_eta": float(ordered_folds[0].get("ddim_eta", 0.0)),
-        "plot_path": str(plot_path.resolve()) if plot_path is not None else None,
     }
 
 
@@ -403,18 +388,6 @@ def main() -> dict[str, Any]:
         help="Comma-separated dataset subset to evaluate.",
     )
     parser.add_argument(
-        "--plot-dataset",
-        type=str,
-        default=None,
-        help="Dataset name to save one normalized GT vs prediction plot for.",
-    )
-    parser.add_argument(
-        "--plot-dir",
-        type=str,
-        default=str(HERE / "evaluation_plots"),
-        help="Directory to save normalized prediction plot.",
-    )
-    parser.add_argument(
         "--output-json",
         type=str,
         default=None,
@@ -466,7 +439,6 @@ def main() -> dict[str, Any]:
 
     device = torch.device(args.device)
     dataset_results: dict[str, dict[str, Any]] = {}
-    plot_dir = Path(args.plot_dir)
     iterator = selected_datasets
     if tqdm is not None:
         iterator = tqdm(selected_datasets, desc="Evaluating finetuned tasks", unit="task")
@@ -517,8 +489,6 @@ def main() -> dict[str, Any]:
         dataset_results[dataset_name] = _aggregate_dataset_result(
             dataset_name=dataset_name,
             fold_results=fold_results,
-            plot_dataset=args.plot_dataset,
-            plot_dir=plot_dir,
         )
 
     overall_metrics = _aggregate_overall_metrics(dataset_results)

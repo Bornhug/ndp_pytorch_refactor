@@ -10,7 +10,6 @@ class ModelConfig:
     embedding_size: int = 96
     num_attention_heads: int = 8
     num_layers: int = 5
-    output_dim: int = 1  # continuous scalar
 
 
 @dataclass
@@ -23,9 +22,8 @@ class DiffusionConfig:
 
 @dataclass
 class OptimizerConfig:
-    num_warmup_epochs: int = 1
-    warmup_steps: int = 0  # unused; warmup is auto 10% of total steps
-    num_decay_epochs: int = 80
+    warmup_fraction: float = 0.10
+    decay_fraction: float = 0.80
     init_lr: float = 2e-4
     peak_lr: float = 1e-2
     end_lr: float = 1e-4
@@ -35,52 +33,54 @@ class OptimizerConfig:
 
 @dataclass
 class TrainingConfig:
+    # Batch sizing and training length.
     batch_size: int = 32
     micro_batch_size: int = 8
     num_epochs: int = 100
-    samples_per_epoch: int = 2**14
+
+    # Loss choice and target-normalization safety filters.
     loss_type: str = "l1"
     std_min: float = 1e-3
     z_max: float = 10.0
     hard_z_threshold: float = 30.0
     max_hard_z_frac: float = 0.05
     gradient_clipping: float = 1.0
+
+    # Device, precision, and PyTorch runtime behavior.
     device: str = "cuda"
     dtype: str = "float32"
     amp: bool = False
+    torch_compile: bool = False
+    torch_compile_mode: str = "reduce-overhead"
+    float32_matmul_precision: str = "high"
+
+    # Reproducibility and DataLoader/runtime progress settings.
     np_seed: int = 42
     torch_seed: int = 42
     num_workers: int = 1
     micro_progress: bool = False
-    # data
+
+    # External TabICL prior source and saved-prior loading controls.
     tabicl_repo: str | None = None
     prior_dir: str | None = None
     load_prior_start: int = 0
     delete_after_load: bool = False
-    batch_size_per_gp: int = 4
-    min_features: int = 2
-    max_features: int = 100
-    min_seq_len: int | None = None
-    max_seq_len: int = 1024
-    log_seq_len: bool = False
-    seq_len_per_gp: bool = False
-    min_train_size: float = 0.1
-    max_train_size: float = 0.9
-    replay_small: bool = False
-    prior_type: str = "mix_scm"
     prior_device: str = "cpu"
-    # checkpointing
+
+    # Checkpoint resume/save paths and save cadence.
     checkpoint_dir: str | None = None
     checkpoint_path: str | None = None
-    save_every: int = 10000
-    # wandb
+    save_every: int = 100000
+
+    # Weights & Biases logging configuration.
     wandb_log: bool = True
     wandb_project: str = "TabICL-regression03"
     wandb_name: str | None = None
     wandb_id: str | None = None
     wandb_dir: str | None = None
     wandb_mode: str = "offline"
-    # evaluation
+
+    # Reserved online-evaluation settings; not used by the current train loop.
     eval_every: int = 0
     eval_batches: int = 10
     eval_sampling_steps: int = 50

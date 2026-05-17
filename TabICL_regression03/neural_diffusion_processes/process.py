@@ -310,16 +310,14 @@ class GaussianDiffusion:
         var = torch.clamp(beta_t * (t > 0), min=1e-3)
         return mean, var
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def sample(
         self,
         key: torch.Generator | None,
         x: torch.Tensor,
-        mask: torch.Tensor | None,
         *,
         x_context: torch.Tensor | None,
         y_context: torch.Tensor | None,
-        mask_context: torch.Tensor | None,
         model,
         output_dim: int = 1,
         num_sample_steps: int | None = None,
@@ -332,6 +330,7 @@ class GaussianDiffusion:
         the regression model at each reverse timestep, and repeatedly applies
         ``reverse_step`` until a clean prediction is produced.
         """
+        method = self._normalize_sampling_method(method)
         batch_size, num_points, _ = x.shape
         y = torch.randn(
             batch_size,
@@ -353,10 +352,8 @@ class GaussianDiffusion:
                 x_target=x,
                 y_target=y,
                 t=t_batch,
-                mask_target=mask,
                 x_context=x_context,
                 y_context=y_context,
-                mask_context=mask_context,
             )
             next_t = schedule[step_idx + 1] if step_idx + 1 < len(schedule) else -1
             y = self.reverse_step(
@@ -404,7 +401,7 @@ def loss(
 
     The function samples a timestep per task, noises ``batch.y_target``,
     asks the model to predict the injected noise, and averages the L1 or L2
-    error over unmasked target points only.
+    error over all target points.
     """
     if loss_type == "l1":
         metric = lambda a, b: (a - b).abs()
@@ -413,7 +410,7 @@ def loss(
     else:
         raise ValueError(f"Unknown loss_type: {loss_type}")
 
-    batch_size, num_points, _ = batch.y_target.shape
+    batch_size = batch.y_target.shape[0]
     device = batch.y_target.device
     t = stratified_timesteps(
         batch_size,
@@ -424,24 +421,13 @@ def loss(
     t_expanded = t.view(batch_size, 1, 1)
     yt, noise_true = process.forward(key, batch.y_target, t_expanded)
 
-    mask_target = (
-        batch.mask_target
-        if batch.mask_target is not None
-        else torch.zeros(batch_size, num_points, device=device)
-    )
     noise_hat = model(
         x_target=batch.x_target,
         y_target=yt,
         t=t.to(batch.x_target.device),
-        mask_target=mask_target.to(batch.x_target.device),
         x_context=batch.x_context,
         y_context=batch.y_context,
-        mask_context=batch.mask_context,
     )
 
     loss_per = metric(noise_true, noise_hat).sum(-1)
-    active = 1.0 - mask_target
-    active_count = active.sum()
-    if active_count <= 0:
-        return torch.tensor(0.0, device=device, dtype=loss_per.dtype)
-    return (loss_per * active).sum() / active_count.clamp(min=1.0)
+    return loss_per.mean()

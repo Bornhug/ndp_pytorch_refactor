@@ -6,7 +6,7 @@ import copy
 import json
 import sys
 from contextlib import nullcontext
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any
 
@@ -36,7 +36,6 @@ from tabicl_style.config import Config
 from tabicl_style.evaluation import (
     DEFAULT_MAX_FEATURES_EVAL,
     DEFAULT_NEW_INSTANCES_EVAL,
-    NDPRegressorWrapper,
     TABPFN_REGRESSION_DATASETS,
     _compute_regression_metrics,
     _standard_error,
@@ -45,8 +44,16 @@ from tabicl_style.evaluation import (
     _save_to_cache,
     get_regression_datasets,
 )
-from tabicl_style.train import EMA, build_model_and_process, compute_grad_norm, compute_lr
-from tabicl_style.utils import normalize_y, set_seed
+from neural_diffusion_processes.regressor import NDPRegressorWrapper
+from tabicl_style.train import (
+    EMA,
+    build_model_and_process,
+    compute_grad_norm,
+    maybe_compile_model,
+    model_state_dict,
+    unwrap_compiled_model,
+)
+from tabicl_style.utils import compute_lr, normalize_y, set_seed
 
 OUTER_TEST_FRACTION = 0.2
 
@@ -719,7 +726,14 @@ def _reconstruct_config(config_dict: dict[str, Any]) -> Config:
             continue
         current_value = getattr(default_config, key)
         if isinstance(value, dict):
-            kwargs[key] = type(current_value)(**value)
+            allowed_fields = {field.name for field in fields(type(current_value))}
+            kwargs[key] = type(current_value)(
+                **{
+                    item_key: item_value
+                    for item_key, item_value in value.items()
+                    if item_key in allowed_fields
+                }
+            )
         else:
             kwargs[key] = value
     return Config(**kwargs)
@@ -741,7 +755,6 @@ def build_finetune_config(
     tc.batch_size = 1
     tc.micro_batch_size = 1
     tc.num_epochs = 1
-    tc.samples_per_epoch = int(args.finetune_steps)
     tc.loss_type = str(args.loss_type or tc.loss_type)
     tc.std_min = float(tc.std_min if args.std_min is None else args.std_min)
     tc.z_max = float(tc.z_max if args.z_max is None else args.z_max)
@@ -780,6 +793,17 @@ def build_finetune_config(
     tc.eval_every = 0
     tc.num_workers = 0
     tc.micro_progress = False
+    tc.torch_compile = bool(getattr(args, "torch_compile", tc.torch_compile))
+    tc.torch_compile_mode = str(
+        getattr(args, "torch_compile_mode", tc.torch_compile_mode)
+    )
+    tc.float32_matmul_precision = str(
+        getattr(
+            args,
+            "float32_matmul_precision",
+            tc.float32_matmul_precision,
+        )
+    )
     tc.prior_dir = None
     tc.tabicl_repo = None
     tc.np_seed = int(args.seed)
@@ -836,6 +860,7 @@ def load_finetune_state(
     model.train()
     ema.shadow.to(device)
     ema.shadow.eval()
+    model = maybe_compile_model(model, config)
     return checkpoint, config, model, process, ema
 
 
@@ -898,15 +923,11 @@ def prepare_fixed_finetune_batch(
         max=float(tc.z_max),
     )
 
-    mask_context = torch.zeros(x_context.shape[:2], device=device, dtype=torch.float32)
-    mask_target = torch.zeros(x_target.shape[:2], device=device, dtype=torch.float32)
     batch = Batch(
         x_target=x_target,
         y_target=y_target_norm,
         x_context=x_context,
         y_context=y_context_norm,
-        mask_target=mask_target,
-        mask_context=mask_context,
     )
     stats = {
         "seq_len": int(x_context.shape[1] + x_target.shape[1]),
@@ -934,7 +955,7 @@ def save_finetune_checkpoint(
     checkpoint_path = Path(path)
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "state_dict": model.state_dict(),
+        "state_dict": model_state_dict(model),
         "ema_state_dict": ema.state_dict(),
         "optimizer_state": optimizer.state_dict(),
         "curr_step": int(step),
@@ -1058,6 +1079,14 @@ def add_shared_cli_args(parser, *, include_dataset: bool) -> None:
         type=str,
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
+    parser.add_argument("--torch-compile", action="store_true")
+    parser.add_argument("--torch-compile-mode", type=str, default="reduce-overhead")
+    parser.add_argument(
+        "--float32-matmul-precision",
+        type=str,
+        default="high",
+        choices=["highest", "high", "medium"],
+    )
     parser.add_argument("--finetune-steps", type=int, default=50)
     parser.add_argument("--save-every", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
@@ -1152,10 +1181,10 @@ def run_task_split_finetune(
     amp_enabled = bool(config.training.amp and device.type == "cuda")
     if amp_enabled:
         scaler = torch.cuda.amp.GradScaler(enabled=True)
-        amp_ctx = torch.autocast(device_type="cuda", dtype=torch.float16)
+        amp_context = torch.autocast(device_type="cuda", dtype=torch.float16)
     else:
         scaler = None
-        amp_ctx = nullcontext()
+        amp_context = nullcontext()
 
     diffusion_key = torch.Generator(device=device)
     diffusion_key.manual_seed(config.training.torch_seed)
@@ -1181,7 +1210,7 @@ def run_task_split_finetune(
         for group in optimizer.param_groups:
             group["lr"] = lr
 
-        with amp_ctx:
+        with amp_context:
             loss = diffusion_loss(
                 process,
                 model,
@@ -1200,13 +1229,14 @@ def run_task_split_finetune(
         else:
             loss.backward()
 
+        trainable_model = unwrap_compiled_model(model)
         if config.training.gradient_clipping > 0:
             grad_norm = nn.utils.clip_grad_norm_(
-                model.parameters(),
+                trainable_model.parameters(),
                 config.training.gradient_clipping,
             )
         else:
-            grad_norm = compute_grad_norm(list(model.parameters()))
+            grad_norm = compute_grad_norm(list(trainable_model.parameters()))
 
         if amp_enabled:
             assert scaler is not None

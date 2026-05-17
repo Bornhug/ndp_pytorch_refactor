@@ -13,8 +13,7 @@ if str(ROOT) not in sys.path:
 
 from neural_diffusion_processes.process import GaussianDiffusion, cosine_schedule, loss
 from neural_diffusion_processes.types import Batch
-from tabicl_style.model import NDPRegressor
-from tabicl_style.sampling import sample_predictions
+from neural_diffusion_processes.regressor import NDPRegressor
 
 
 def _make_model() -> NDPRegressor:
@@ -23,6 +22,7 @@ def _make_model() -> NDPRegressor:
         embedding_size=16,
         num_attention_heads=4,
         num_layers=2,
+        num_timesteps=8,
     )
 
 
@@ -40,19 +40,14 @@ def test_forward_shape_without_context() -> None:
     assert out.shape == (2, 5, 1)
 
 
-def test_forward_shape_with_context_and_masks() -> None:
+def test_forward_shape_with_context() -> None:
     model = _make_model()
     out = model(
         x_target=torch.randn(2, 4, 3),
         y_target=torch.randn(2, 4, 1),
         t=torch.tensor([0, 2], dtype=torch.long),
-        mask_target=torch.tensor([[0, 0, 1, 0], [0, 1, 0, 0]], dtype=torch.float32),
         x_context=torch.randn(2, 6, 3),
         y_context=torch.randn(2, 6, 1),
-        mask_context=torch.tensor(
-            [[0, 1, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0]],
-            dtype=torch.float32,
-        ),
     )
     assert out.shape == (2, 4, 1)
 
@@ -63,9 +58,9 @@ def test_combined_sequence_keeps_context_slice_stable() -> None:
     original_forward = layer.forward
     records: list[tuple[torch.Tensor, int | None]] = []
 
-    def wrapped_forward(self, s, t, mask=None, *, split_idx=None):
+    def wrapped_forward(self, s, t, *, split_idx=None):
         records.append((s.detach().clone(), split_idx))
-        return original_forward(s, t, mask, split_idx=split_idx)
+        return original_forward(s, t, split_idx=split_idx)
 
     layer.forward = types.MethodType(wrapped_forward, layer)
     try:
@@ -77,10 +72,8 @@ def test_combined_sequence_keeps_context_slice_stable() -> None:
                 x_target=x_target,
                 y_target=torch.randn(1, 3, 1),
                 t=torch.tensor([timestep], dtype=torch.long),
-                mask_target=torch.zeros(1, 3),
                 x_context=x_context,
                 y_context=y_context,
-                mask_context=torch.zeros(1, 4),
             )
     finally:
         layer.forward = original_forward
@@ -100,16 +93,11 @@ def test_loss_and_sampling_smoke_with_context() -> None:
     y_target = torch.randn(2, 3, 1)
     x_context = torch.randn(2, 4, 2)
     y_context = torch.randn(2, 4, 1)
-    mask_target = torch.tensor([[0, 1, 0], [0, 0, 0]], dtype=torch.float32)
-    mask_context = torch.tensor([[0, 0, 0, 1], [0, 1, 0, 0]], dtype=torch.float32)
-
     batch = Batch(
         x_target=x_target,
         y_target=y_target,
         x_context=x_context,
         y_context=y_context,
-        mask_target=mask_target,
-        mask_context=mask_context,
     )
     loss_value = loss(
         process,
@@ -123,16 +111,15 @@ def test_loss_and_sampling_smoke_with_context() -> None:
     assert torch.isfinite(loss_value)
 
     for method in ("ddpm", "ddim"):
-        preds = sample_predictions(
-            process,
-            model,
-            x_target=x_target,
+        preds = process.sample(
+            None,
+            x_target,
+            model=model,
             x_context=x_context,
             y_context=y_context,
-            mask_target=mask_target,
-            mask_context=mask_context,
-            num_steps=4,
-            sampling_method=method,
+            output_dim=y_context.shape[-1],
+            num_sample_steps=4,
+            method=method,
         )
         assert preds.shape == (2, 3, 1)
         assert torch.isfinite(preds).all()

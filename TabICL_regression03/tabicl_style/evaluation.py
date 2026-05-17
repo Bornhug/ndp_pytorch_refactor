@@ -19,17 +19,13 @@ import os
 import pickle
 import shutil
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
-try:
-    import matplotlib.pyplot as plt
-except Exception:
-    plt = None
 
 from sklearn.compose import ColumnTransformer
 from sklearn.datasets import fetch_openml
@@ -54,6 +50,8 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from neural_diffusion_processes.regressor import NDPRegressorWrapper
 
 SKLEARN_DATA_HOME = Path(
     os.environ.get("SCIKIT_LEARN_DATA", str(ROOT / ".sklearn_data"))
@@ -316,122 +314,8 @@ def get_regression_datasets(
 
 
 # ---------------------------------------------------------------------------
-# Sklearn-style NDP Regressor wrapper
-# ---------------------------------------------------------------------------
-
-class NDPRegressorWrapper:
-    """Sklearn-compatible wrapper for NDP regression inference."""
-
-    def __init__(
-        self,
-        model,
-        process,
-        device: torch.device,
-        *,
-        num_sampling_steps: int = 50,
-        sampling_method: str = "ddpm",
-        ddim_eta: float = 0.0,
-    ) -> None:
-        self.model = model
-        self.model.eval()
-        self.process = process
-        self.device = device
-        self.num_sampling_steps = int(num_sampling_steps)
-        self.sampling_method = str(sampling_method).lower()
-        self.ddim_eta = float(ddim_eta)
-
-        self.X_train: np.ndarray | None = None
-        self.y_train: np.ndarray | None = None
-        self.y_mean: float = 0.0
-        self.y_std: float = 1.0
-
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> NDPRegressorWrapper:
-        self.X_train = X_train.astype(np.float32)
-        self.y_train = y_train.astype(np.float32)
-        self.y_mean = float(self.y_train.mean())
-        self.y_std = float(max(self.y_train.std(), 1e-6))
-        return self
-
-    def predict(self, X_test: np.ndarray, *, desc: str | None = None) -> np.ndarray:
-        if self.X_train is None or self.y_train is None:
-            raise RuntimeError("Must call fit() before predict().")
-
-        from tabicl_style.sampling import sample_predictions
-
-        # Normalize y_context
-        y_train_norm = (self.y_train - self.y_mean) / self.y_std
-
-        x_context = torch.from_numpy(self.X_train).to(self.device).unsqueeze(0)
-        y_context = (
-            torch.from_numpy(y_train_norm)
-            .to(self.device)
-            .unsqueeze(0)
-            .unsqueeze(-1)
-        )  # [1, N_C, 1]
-        x_target = (
-            torch.from_numpy(X_test.astype(np.float32)).to(self.device).unsqueeze(0)
-        )
-
-        mask_context = torch.zeros(
-            x_context.shape[:2], device=self.device, dtype=torch.float32
-        )
-        mask_target = torch.zeros(
-            x_target.shape[:2], device=self.device, dtype=torch.float32
-        )
-
-        y_pred_norm = sample_predictions(
-            self.process,
-            self.model,
-            x_target=x_target,
-            x_context=x_context,
-            y_context=y_context,
-            mask_target=mask_target,
-            mask_context=mask_context,
-            num_steps=self.num_sampling_steps,
-            sampling_method=self.sampling_method,
-            ddim_eta=self.ddim_eta,
-        )  # [1, N_T, 1]
-
-        # Denormalize
-        y_pred = y_pred_norm.squeeze(0).squeeze(-1).detach().cpu().numpy()
-        y_pred = y_pred * self.y_std + self.y_mean
-        return y_pred
-
-
-# ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
-
-def _save_normalized_prediction_plot(
-    dataset_name: str,
-    y_true_norm: np.ndarray,
-    y_pred_norm: np.ndarray,
-    *,
-    plot_dir: Path,
-) -> Path | None:
-    if plt is None:
-        print("matplotlib is unavailable; skipping normalized prediction plot.")
-        return None
-
-    plot_dir.mkdir(parents=True, exist_ok=True)
-    x = np.arange(y_true_norm.shape[0], dtype=np.int64)
-
-    fig, ax = plt.subplots(figsize=(14, 4))
-    ax.plot(x, y_true_norm, label="ground truth (normalized)", linewidth=1.0)
-    ax.plot(x, y_pred_norm, label="predicted (normalized)", linewidth=1.0, alpha=0.9)
-    ax.axhline(0.0, color="black", linestyle="--", linewidth=0.8, alpha=0.7)
-    ax.set_title(f"{dataset_name}: normalized ground truth vs prediction")
-    ax.set_xlabel("evaluated datapoint order")
-    ax.set_ylabel("normalized y")
-    ax.legend(loc="upper right")
-    ax.grid(alpha=0.2)
-    fig.tight_layout()
-
-    out_path = plot_dir / f"{dataset_name}_normalized_pred_vs_gt.png"
-    fig.savefig(out_path, dpi=150)
-    plt.close(fig)
-    return out_path
-
 
 def _compute_regression_metrics(
     y_true: np.ndarray,
@@ -458,8 +342,6 @@ def eval_model(
     n_splits: int = 1,
     n_repeats: int = 20,
     random_state: int = 0,
-    plot_dataset: str | None = None,
-    plot_dir: Path | None = None,
     return_details: bool = False,
 ) -> Dict[str, float] | Tuple[Dict[str, float], Dict[str, Any]]:
     """Evaluate with repeated CV on fixed splits.
@@ -469,7 +351,6 @@ def eval_model(
     If n_splits <= 1, use one fixed random holdout split.
     """
     metrics: Dict[str, float] = {}
-    plotted_dataset = False
     details: Dict[str, Any] | None = {"datasets": {}} if return_details else None
 
     items = list(datasets.items())
@@ -502,11 +383,8 @@ def eval_model(
     for dataset_name, (X, y) in iterator:
         y_true_all = []
         y_pred_all = []
-        y_true_norm_all = []
-        y_pred_norm_all = []
         rep_prediction_chunks = [[] for _ in range(repeat_count)]
         fold_logs = []
-        should_plot_dataset = plot_dataset is not None and dataset_name == plot_dataset
 
         for fold_idx, (train_idx, test_idx) in enumerate(
             dataset_splits[dataset_name], start=1
@@ -528,14 +406,8 @@ def eval_model(
                     unit="rep",
                     leave=False,
                 )
-            for rep_idx in rep_iterator:
-                y_pred = model.predict(
-                    X_test,
-                    desc=(
-                        f"{dataset_name} rep {rep_idx + 1}/{repeat_count} "
-                        f"{split_label} {fold_idx}/{split_count}"
-                    ),
-                )
+            for _rep_idx in rep_iterator:
+                y_pred = model.predict(X_test)
                 preds_rep.append(y_pred)
 
             y_pred_rep_np = np.stack(preds_rep, axis=0)
@@ -570,12 +442,6 @@ def eval_model(
                     "metrics": fold_metrics,
                 }
             )
-            if should_plot_dataset:
-                y_test_norm = (y_test - model.y_mean) / model.y_std
-                y_pred_norm = (y_pred_mean - model.y_mean) / model.y_std
-                y_true_norm_all.append(y_test_norm)
-                y_pred_norm_all.append(y_pred_norm)
-
         y_true_np = np.concatenate(y_true_all, axis=0).astype(np.float32)
         y_pred_np = np.concatenate(y_pred_all, axis=0).astype(np.float32)
         y_pred_rep_concat = [
@@ -596,20 +462,6 @@ def eval_model(
                 "y_pred_mean": y_pred_np.tolist(),
                 "folds": fold_logs,
             }
-
-        if should_plot_dataset and y_true_norm_all and y_pred_norm_all:
-            y_true_norm_np = np.concatenate(y_true_norm_all, axis=0)
-            y_pred_norm_np = np.concatenate(y_pred_norm_all, axis=0)
-            target_plot_dir = plot_dir if plot_dir is not None else (HERE / "evaluation_plots")
-            out_path = _save_normalized_prediction_plot(
-                dataset_name=dataset_name,
-                y_true_norm=y_true_norm_np,
-                y_pred_norm=y_pred_norm_np,
-                plot_dir=target_plot_dir,
-            )
-            if out_path is not None:
-                print(f"Saved normalized prediction plot: {out_path}")
-            plotted_dataset = True
 
     overall_r2_folds = [float(np.mean(vals)) for vals in split_r2_values if vals]
     overall_rmse_folds = [float(np.mean(vals)) for vals in split_rmse_values if vals]
@@ -639,9 +491,6 @@ def eval_model(
             "MAE_SE": metrics.get("MAE_SE"),
             "MAE_FOLD_VALUES": metrics.get("MAE_FOLD_VALUES"),
         }
-    if plot_dataset is not None and not plotted_dataset:
-        print(f"Requested plot dataset '{plot_dataset}' was not found in loaded datasets.")
-
     if details is not None:
         return metrics, details
     return metrics
@@ -651,21 +500,42 @@ def eval_model(
 # Checkpoint loading
 # ---------------------------------------------------------------------------
 
-def _load_checkpoint(checkpoint_path: Path, device: torch.device):
-    from tabicl_style.train import build_model_and_process, EMA
+def _load_checkpoint(
+    checkpoint_path: Path,
+    device: torch.device,
+    *,
+    torch_compile: bool = False,
+    torch_compile_mode: str | None = None,
+):
+    from tabicl_style.train import build_model_and_process, maybe_compile_model
     from tabicl_style.config import Config
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
     config_dict = checkpoint["config"]
 
-    # Reconstruct Config from dict
+    # Reconstruct Config from dict. Filter nested keys so older checkpoints with
+    # removed config fields can still be evaluated.
+    default_config = Config()
     config = Config(
         **{
-            k: type(getattr(Config(), k))(**v) if isinstance(v, dict) else v
+            k: type(getattr(default_config, k))(
+                **{
+                    item_key: item_value
+                    for item_key, item_value in v.items()
+                    if item_key
+                    in {field.name for field in fields(type(getattr(default_config, k)))}
+                }
+            )
+            if isinstance(v, dict)
+            else v
             for k, v in config_dict.items()
-            if hasattr(Config(), k)
+            if hasattr(default_config, k)
         }
     )
+    if torch_compile:
+        config.training.torch_compile = True
+    if torch_compile_mode is not None:
+        config.training.torch_compile_mode = str(torch_compile_mode)
 
     model, process = build_model_and_process(config, device)
 
@@ -679,6 +549,7 @@ def _load_checkpoint(checkpoint_path: Path, device: torch.device):
 
     model.to(device)
     model.eval()
+    model = maybe_compile_model(model, config)
     return model, process, config
 
 
@@ -724,6 +595,8 @@ def main() -> Dict[str, float]:
         type=str,
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
+    parser.add_argument("--torch-compile", action="store_true")
+    parser.add_argument("--torch-compile-mode", type=str, default="reduce-overhead")
     parser.add_argument(
         "--max-features-eval",
         type=int,
@@ -743,18 +616,6 @@ def main() -> Dict[str, float]:
         help="Comma-separated list of dataset names (default: all 29)",
     )
     parser.add_argument(
-        "--plot-dataset",
-        type=str,
-        default=None,
-        help="Dataset name to save one normalized GT vs prediction plot for.",
-    )
-    parser.add_argument(
-        "--plot-dir",
-        type=str,
-        default=str(HERE / "evaluation_plots"),
-        help="Directory to save normalized prediction plot.",
-    )
-    parser.add_argument(
         "--output-json",
         type=str,
         default=None,
@@ -769,7 +630,12 @@ def main() -> Dict[str, float]:
     checkpoint_path = Path(args.checkpoint)
 
     print(f"Loading checkpoint: {checkpoint_path}")
-    model, process, config = _load_checkpoint(checkpoint_path, device)
+    model, process, config = _load_checkpoint(
+        checkpoint_path,
+        device,
+        torch_compile=bool(args.torch_compile),
+        torch_compile_mode=args.torch_compile_mode,
+    )
 
     regressor = NDPRegressorWrapper(
         model=model,
@@ -801,8 +667,6 @@ def main() -> Dict[str, float]:
         n_splits=args.n_splits,
         n_repeats=args.n_repeats,
         random_state=args.random_state,
-        plot_dataset=args.plot_dataset,
-        plot_dir=Path(args.plot_dir),
         return_details=args.output_json is not None,
     )
     if args.output_json is not None:

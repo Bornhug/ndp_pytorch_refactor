@@ -20,8 +20,6 @@ class Batch:
     y_target: TensorOrArray
     x_context: TensorOrArray | None = None
     y_context: TensorOrArray | None = None
-    mask_target: TensorOrArray | None = None
-    mask_context: TensorOrArray | None = None
 
 
 Dataset = Generator[Batch, None, None]
