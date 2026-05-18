@@ -104,10 +104,12 @@ DEFAULT_NEW_INSTANCES_EVAL = 1000
 # ---------------------------------------------------------------------------
 
 def _get_cache_path(dataset_name: str) -> Path:
+    """Return the on-disk pickle cache path for one OpenML dataset."""
     return DATASET_CACHE_DIR / f"reg_{dataset_name}.pkl"
 
 
 def _load_from_cache(dataset_name: str, *, verbose: bool = False) -> Optional[Dict]:
+    """Load preprocessed ``(X, y)`` data from cache if the cache is usable."""
     cache_path = _get_cache_path(dataset_name)
     if not cache_path.exists():
         return None
@@ -130,6 +132,7 @@ def _save_to_cache(
     *,
     verbose: bool = False,
 ) -> None:
+    """Persist preprocessed dataset arrays so later evaluations skip OpenML fetch."""
     DATASET_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_path = _get_cache_path(dataset_name)
     cached = {"X": X, "y": y, "dataset_name": dataset_name}
@@ -148,8 +151,12 @@ def _save_to_cache(
 # ---------------------------------------------------------------------------
 
 def get_feature_preprocessor(X: np.ndarray | pd.DataFrame) -> ColumnTransformer:
-    """Identify numeric vs categorical columns, drop constants,
-    ordinal-encode categoricals, coerce numerics."""
+    """Build the preprocessing pipeline used before NDP evaluation.
+
+    Constant columns are dropped by excluding them from both masks. Columns that
+    can be fully coerced to numeric are kept numeric; the remaining columns are
+    ordinal-encoded with unknown categories mapped to NaN.
+    """
     X = pd.DataFrame(X)
     num_mask = []
     cat_mask = []
@@ -197,7 +204,11 @@ def _fetch_openml_regression(
     *,
     verbose: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Fetch a regression dataset from OpenML by data_id."""
+    """Fetch and preprocess one benchmark regression dataset from OpenML.
+
+    The returned arrays are float32, rows with missing target values are
+    removed, and feature preprocessing mirrors the TabPFN-style benchmark path.
+    """
     data_home = str(SKLEARN_DATA_HOME)
     try:
         bunch = fetch_openml(data_id=data_id, as_frame=True, data_home=data_home)
@@ -240,6 +251,10 @@ def get_regression_datasets(
     dataset_names: list[str] | None = None,
 ) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
     """Load TabPFN regression benchmark datasets.
+
+    Each dataset is loaded from cache when possible, otherwise fetched from
+    OpenML and cached after preprocessing. Datasets that exceed the feature
+    limit are skipped, and large datasets are subsampled with a fixed RNG seed.
 
     Returns:
         dict mapping dataset_name -> (X, y) where X is float32, y is float32.
@@ -321,6 +336,7 @@ def _compute_regression_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
 ) -> Dict[str, float]:
+    """Compute the regression metrics reported for each fold and dataset."""
     return {
         "R2": float(r2_score(y_true, y_pred)),
         "RMSE": float(np.sqrt(mean_squared_error(y_true, y_pred))),
@@ -329,6 +345,7 @@ def _compute_regression_metrics(
 
 
 def _standard_error(values: list[float]) -> float:
+    """Return the standard error over split-level metric values."""
     if not values:
         return float("nan")
     values_np = np.asarray(values, dtype=np.float64)
@@ -349,6 +366,10 @@ def eval_model(
     Repetitions are used as Monte Carlo samples on the same split(s): predictions
     are averaged first, then metrics are computed from the averaged prediction.
     If n_splits <= 1, use one fixed random holdout split.
+
+    When ``return_details`` is true, also return fold-level indices,
+    per-repetition predictions, averaged predictions, and metric details for
+    JSON export.
     """
     metrics: Dict[str, float] = {}
     details: Dict[str, Any] | None = {"datasets": {}} if return_details else None
@@ -393,24 +414,7 @@ def eval_model(
             y_train, y_test = y[train_idx], y[test_idx]
 
             model.fit(X_train, y_train)
-            preds_rep = []
-            rep_iterator = range(repeat_count)
-            if tqdm is not None:
-                rep_iterator = tqdm(
-                    rep_iterator,
-                    total=repeat_count,
-                    desc=(
-                        f"{dataset_name} "
-                        f"{split_label} {fold_idx}/{split_count}"
-                    ),
-                    unit="rep",
-                    leave=False,
-                )
-            for _rep_idx in rep_iterator:
-                y_pred = model.predict(X_test)
-                preds_rep.append(y_pred)
-
-            y_pred_rep_np = np.stack(preds_rep, axis=0)
+            y_pred_rep_np = model.predict_repeated(X_test, repeat_count)
             y_pred_mean = np.mean(y_pred_rep_np, axis=0)
             y_test_np = np.asarray(y_test, dtype=np.float32)
 
@@ -507,6 +511,13 @@ def _load_checkpoint(
     torch_compile: bool = False,
     torch_compile_mode: str | None = None,
 ):
+    """Rebuild the training model/process pair and load checkpoint weights.
+
+    Checkpoint configs are filtered against the current dataclasses so older
+    checkpoints with removed fields can still be evaluated. EMA weights are
+    preferred when present because they are the evaluation weights saved during
+    training.
+    """
     from tabicl_style.train import build_model_and_process, maybe_compile_model
     from tabicl_style.config import Config
 
@@ -558,6 +569,7 @@ def _load_checkpoint(
 # ---------------------------------------------------------------------------
 
 def main() -> Dict[str, float]:
+    """Parse CLI options, run benchmark evaluation, print and optionally save metrics."""
     import argparse
 
     try:

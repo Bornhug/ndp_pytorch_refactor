@@ -27,7 +27,8 @@ if str(ROOT) not in sys.path:
 from neural_diffusion_processes.process import (
     GaussianDiffusion,
     cosine_schedule,
-    loss as diffusion_loss,
+    denoising_prediction_loss,
+    prepare_denoising_targets,
 )
 from neural_diffusion_processes.regressor import NDPRegressor
 from neural_diffusion_processes.types import Batch
@@ -558,15 +559,27 @@ class Trainer:
             y_context=y_context_norm,
         )
 
+        t, yt, noise_true = prepare_denoising_targets(
+            self.process,
+            batch,
+            self.diffusion_key,
+            num_timesteps=self.config.diffusion.timesteps,
+        )
+
         with self.amp_context:
-            loss = diffusion_loss(
-                self.process,
-                self.model,
-                batch,
-                self.diffusion_key,
-                num_timesteps=self.config.diffusion.timesteps,
-                loss_type=self.config.training.loss_type,
+            noise_hat = self.model(
+                x_target=batch.x_target,
+                y_target=yt,
+                t=t.to(batch.x_target.device),
+                x_context=batch.x_context,
+                y_context=batch.y_context,
             )
+
+        loss = denoising_prediction_loss(
+            noise_true,
+            noise_hat,
+            loss_type=self.config.training.loss_type,
+        )
 
         if not torch.isfinite(loss):
             raise FloatingPointError("non-finite loss")

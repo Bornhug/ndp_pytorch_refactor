@@ -138,9 +138,14 @@ class NDPRegressorWrapper:
         self.y_train = y_train.astype(np.float32)
         return self
 
-    def predict(self, X_test: np.ndarray) -> np.ndarray:
+    def predict_repeated(self, X_test: np.ndarray, num_repeats: int) -> np.ndarray:
+        """Return repeated stochastic predictions with one batched sampler call."""
         if self.X_train is None or self.y_train is None:
             raise RuntimeError("Must call fit() before predict().")
+        if int(num_repeats) <= 0:
+            raise ValueError(f"num_repeats must be positive, got {num_repeats}.")
+
+        repeat_count = int(num_repeats)
 
         x_context = torch.from_numpy(self.X_train).to(self.device).unsqueeze(0)
         y_context_raw = torch.from_numpy(self.y_train).to(self.device).unsqueeze(0)
@@ -151,6 +156,10 @@ class NDPRegressorWrapper:
         x_target = (
             torch.from_numpy(X_test.astype(np.float32)).to(self.device).unsqueeze(0)
         )
+        if repeat_count > 1:
+            x_context = x_context.expand(repeat_count, -1, -1)
+            y_context = y_context.expand(repeat_count, -1, -1)
+            x_target = x_target.expand(repeat_count, -1, -1)
 
         y_pred_norm = self.process.sample(
             None,
@@ -165,7 +174,11 @@ class NDPRegressorWrapper:
         )
 
         y_pred = denormalize_y(y_pred_norm, mean, std)
-        return y_pred.squeeze(0).squeeze(-1).detach().cpu().numpy()
+        return y_pred.squeeze(-1).detach().cpu().numpy()
+
+    def predict(self, X_test: np.ndarray) -> np.ndarray:
+        """Return one prediction vector for sklearn-style callers."""
+        return self.predict_repeated(X_test, 1)[0]
 
 
 __all__ = [

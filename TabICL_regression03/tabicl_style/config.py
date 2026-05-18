@@ -55,7 +55,7 @@ class TrainingConfig:
     # PyTorch device used for model/loss computation; WSL ndp normally uses "cuda".
     device: str = "cuda"
     # Autocast dtype used only when amp=True.
-    dtype: str = "bfloat16"
+    dtype: str = "float16"
     # Enable CUDA mixed precision to reduce memory use and usually speed training.
     amp: bool = False
     # Optional torch.compile graph optimization. Use Python 3.11 + torch 2.8/cu129

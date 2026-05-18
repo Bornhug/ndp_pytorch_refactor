@@ -388,6 +388,46 @@ def stratified_timesteps(
     return (offset + bins).clamp(0, num_timesteps - 1 - 1e-6).long()
 
 
+def prepare_denoising_targets(
+    process: GaussianDiffusion,
+    batch,
+    key: torch.Generator,
+    *,
+    num_timesteps: int,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Sample timesteps and noised targets for the denoising objective."""
+    batch_size = batch.y_target.shape[0]
+    device = batch.y_target.device
+    t = stratified_timesteps(
+        batch_size,
+        num_timesteps,
+        device=device,
+        generator=key,
+    )
+    t_expanded = t.view(batch_size, 1, 1)
+    yt, noise_true = process.forward(key, batch.y_target.float(), t_expanded)
+    return t, yt, noise_true
+
+
+def denoising_prediction_loss(
+    noise_true: torch.Tensor,
+    noise_hat: torch.Tensor,
+    *,
+    loss_type: str = "l1",
+) -> torch.Tensor:
+    """Return FP32 L1/L2 denoising loss from true and predicted noise."""
+    with torch.autocast(device_type=noise_hat.device.type, enabled=False):
+        noise_true = noise_true.float()
+        noise_hat = noise_hat.float()
+        if loss_type == "l1":
+            loss_per = (noise_true - noise_hat).abs().sum(-1)
+        elif loss_type == "l2":
+            loss_per = ((noise_true - noise_hat) ** 2).sum(-1)
+        else:
+            raise ValueError(f"Unknown loss_type: {loss_type}")
+        return loss_per.mean()
+
+
 def loss(
     process: GaussianDiffusion,
     model,
@@ -403,24 +443,12 @@ def loss(
     asks the model to predict the injected noise, and averages the L1 or L2
     error over all target points.
     """
-    if loss_type == "l1":
-        metric = lambda a, b: (a - b).abs()
-    elif loss_type == "l2":
-        metric = lambda a, b: (a - b) ** 2
-    else:
-        raise ValueError(f"Unknown loss_type: {loss_type}")
-
-    batch_size = batch.y_target.shape[0]
-    device = batch.y_target.device
-    t = stratified_timesteps(
-        batch_size,
-        num_timesteps,
-        device=device,
-        generator=key,
+    t, yt, noise_true = prepare_denoising_targets(
+        process,
+        batch,
+        key,
+        num_timesteps=num_timesteps,
     )
-    t_expanded = t.view(batch_size, 1, 1)
-    yt, noise_true = process.forward(key, batch.y_target, t_expanded)
-
     noise_hat = model(
         x_target=batch.x_target,
         y_target=yt,
@@ -428,6 +456,4 @@ def loss(
         x_context=batch.x_context,
         y_context=batch.y_context,
     )
-
-    loss_per = metric(noise_true, noise_hat).sum(-1)
-    return loss_per.mean()
+    return denoising_prediction_loss(noise_true, noise_hat, loss_type=loss_type)
