@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import shutil
 import sys
 from contextlib import nullcontext
 from dataclasses import asdict
@@ -40,9 +41,16 @@ from tabicl_style.batching import (
 from tabicl_style.config import Config
 from tabicl_style.data import build_dataloader, build_dataset
 from tabicl_style.utils import (
+    checkpoint_curr_step,
     compute_lr_from_schedule_steps,
+    get_latest_checkpoint,
+    infer_latest_run_dir,
+    infer_next_checkpoint_dir,
     infer_lr_schedule_steps,
+    infer_steps_per_epoch,
     normalize_y,
+    prior_start_for_step,
+    resolve_amp_dtype,
     set_seed,
     split_context_target,
 )
@@ -94,8 +102,27 @@ def maybe_compile_model(model: nn.Module, config: Config) -> nn.Module:
     """
     if not bool(getattr(config.training, "torch_compile", False)):
         return model
-    mode = str(getattr(config.training, "torch_compile_mode", "reduce-overhead"))
-    return torch.compile(model, mode=mode)
+    mode = str(getattr(config.training, "torch_compile_mode", "default"))
+    device = str(getattr(config.training, "device", ""))
+    if "cuda" in device:
+        missing = [tool for tool in ("nvcc", "ptxas") if shutil.which(tool) is None]
+        if missing:
+            raise RuntimeError(
+                "torch_compile=True on CUDA needs CUDA compiler tools on PATH; "
+                f"missing: {', '.join(missing)}. In the WSL ndp_sim environment run: "
+                "conda install -y -c nvidia cuda-nvcc=12.9.86. "
+                "Set training.torch_compile=False to run without compilation."
+            )
+    try:
+        return torch.compile(model, mode=mode)
+    except RuntimeError as exc:
+        if sys.version_info >= (3, 12) and "Dynamo is not supported" in str(exc):
+            raise RuntimeError(
+                "torch_compile=True requires a PyTorch/Python combination with "
+                "Dynamo support. Use the WSL ndp_sim Python 3.11 environment, "
+                "or set training.torch_compile=False."
+            ) from exc
+        raise
 
 
 def build_diffusion_betas(config: Config) -> torch.Tensor:
@@ -203,28 +230,46 @@ def compute_grad_norm(parameters) -> torch.Tensor:
 # Checkpointing helpers
 # ---------------------------------------------------------------------------
 
-def infer_steps_per_epoch(config: Config) -> int:
-    """Infer epoch length from pre-generated prior batch files.
+def configure_checkpoint_dir(
+    config: Config,
+    *,
+    total_steps: int,
+    runs_root: str | Path | None = None,
+) -> Path | None:
+    """Choose the run directory and return the checkpoint to load, if any."""
+    tc = config.training
+    root = Path(runs_root) if runs_root is not None else ROOT / "runs"
 
-    Training is pre-generated-prior-only: every ``batch_*.pt`` file in
-    ``training.prior_dir`` counts as one optimizer step. Missing or empty
-    directories fail early because there is no live-generation fallback.
-    """
-    prior_dir = config.training.prior_dir
-    if prior_dir is None:
-        raise ValueError(
-            "training.prior_dir is required; live TabICL prior generation is "
-            "not supported in TabICL_regression03 training."
-        )
+    if tc.checkpoint_path:
+        checkpoint_path = Path(tc.checkpoint_path).expanduser()
+        tc.checkpoint_dir = str(checkpoint_path.resolve().parent)
+        print(f"checkpoint_dir inferred from checkpoint_path: {tc.checkpoint_dir}")
+        return checkpoint_path
 
-    p = Path(prior_dir).expanduser()
-    if not p.is_dir():
-        raise FileNotFoundError(f"prior_dir not found: {p}")
+    if tc.checkpoint_dir:
+        latest = get_latest_checkpoint(Path(tc.checkpoint_dir))
+        if latest:
+            print(f"checkpoint_dir explicit; resuming latest checkpoint: {latest}")
+        return latest
 
-    count = len(list(p.glob("batch_*.pt")))
-    if count <= 0:
-        raise FileNotFoundError(f"no pre-generated batch_*.pt files found in {p}")
-    return count
+    if bool(getattr(tc, "auto_resume_latest", True)):
+        latest_run = infer_latest_run_dir(root)
+        if latest_run is not None:
+            latest_checkpoint = get_latest_checkpoint(latest_run)
+            if latest_checkpoint is not None:
+                latest_step = checkpoint_curr_step(latest_checkpoint)
+                if latest_step < total_steps:
+                    tc.checkpoint_dir = str(latest_run)
+                    print(
+                        "checkpoint_dir auto-resumed: "
+                        f"{tc.checkpoint_dir} at step {latest_step}"
+                    )
+                    return latest_checkpoint
+
+    tc.checkpoint_dir = str(infer_next_checkpoint_dir(root))
+    Path(tc.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+    print(f"checkpoint_dir inferred: {tc.checkpoint_dir}")
+    return None
 
 
 def should_save_checkpoint(step: int, total_steps: int, save_every: int) -> bool:
@@ -264,6 +309,20 @@ class Trainer:
 
         set_seed(tc.np_seed, tc.torch_seed)
 
+        self.curr_step = 0
+        self.steps_per_epoch = infer_steps_per_epoch(config)
+        self.total_steps = int(self.steps_per_epoch * tc.num_epochs)
+        if self.total_steps <= 0:
+            raise ValueError("Total training steps must be positive.")
+        self.lr_warmup_steps, self.lr_decay_steps = infer_lr_schedule_steps(
+            config,
+            self.total_steps,
+        )
+        checkpoint_to_load = configure_checkpoint_dir(
+            config,
+            total_steps=self.total_steps,
+        )
+
         self.model, self.process = build_model_and_process(config, self.device)
         self.ema = EMA(self.model, decay=config.optimizer.ema_rate)
 
@@ -274,27 +333,17 @@ class Trainer:
         )
 
         self.amp = bool(tc.amp and "cuda" in tc.device)
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
+        amp_dtype = resolve_amp_dtype(tc.dtype) if self.amp else torch.float32
+        self.scaler = torch.cuda.amp.GradScaler(
+            enabled=self.amp and amp_dtype == torch.float16
+        )
         if self.amp:
-            dtype = torch.float16 if tc.dtype == "float16" else torch.float32
-            self.amp_context = torch.autocast(device_type="cuda", dtype=dtype)
+            self.amp_context = torch.autocast(device_type="cuda", dtype=amp_dtype)
         else:
             self.amp_context = nullcontext()
 
-        self.reset_data_iter()
-
-        self.curr_step = 0
         self.diffusion_key = torch.Generator(device=self.device)
         self.diffusion_key.manual_seed(tc.torch_seed)
-
-        self.steps_per_epoch = infer_steps_per_epoch(config)
-        self.total_steps = int(self.steps_per_epoch * tc.num_epochs)
-        if self.total_steps <= 0:
-            raise ValueError("Total training steps must be positive.")
-        self.lr_warmup_steps, self.lr_decay_steps = infer_lr_schedule_steps(
-            config,
-            self.total_steps,
-        )
 
         self.wandb_run = None
         self._wandb_log_failed = False
@@ -310,31 +359,42 @@ class Trainer:
                     name=tc.wandb_name,
                     id=tc.wandb_id,
                     config=asdict(config),
-                    resume="allow",
+                    resume=tc.wandb_resume,
                     mode=tc.wandb_mode,
                 )
 
-        if tc.checkpoint_path:
-            self.load_checkpoint(tc.checkpoint_path)
-        elif tc.checkpoint_dir:
-            latest = self.get_latest_checkpoint(Path(tc.checkpoint_dir))
-            if latest:
-                self.load_checkpoint(latest)
+        if checkpoint_to_load is not None:
+            if tc.delete_after_load:
+                raise RuntimeError(
+                    "Cannot safely resume from checkpoint when "
+                    "training.delete_after_load=True because prior batch files "
+                    "needed for resume may have been deleted."
+                )
+            self.load_checkpoint(checkpoint_to_load)
         self.model = maybe_compile_model(self.model, config)
+        self.reset_data_iter(start_from=self.current_prior_start())
 
     # ------------------------------------------------------------------
     # Data
     # ------------------------------------------------------------------
 
-    def reset_data_iter(self) -> None:
+    def current_prior_start(self) -> int:
+        """Return the prior file index matching the next training step."""
+        return prior_start_for_step(
+            self.config.training.load_prior_start,
+            self.curr_step,
+            self.steps_per_epoch,
+        )
+
+    def reset_data_iter(self, *, start_from: int | None = None) -> None:
         """Recreate the dataset, DataLoader, and iterator.
 
         This is called at construction and at every epoch boundary. Rebuilding
-        the iterator lets generated or disk-backed prior batches restart cleanly
-        for the next epoch.
+        the iterator lets generated or disk-backed prior batches restart at the
+        correct file for fresh epochs and checkpoint resumes.
         """
         tc = self.config.training
-        dataset = build_dataset(tc)
+        dataset = build_dataset(tc, start_from=start_from)
         self.dataloader = build_dataloader(tc, dataset)
         self.data_iter = iter(self.dataloader)
 
@@ -346,13 +406,10 @@ class Trainer:
         """Find the latest checkpoint file in a checkpoint directory.
 
         Returns ``None`` when the directory does not exist or contains no
-        ``step-*.pt`` files. The current naming scheme sorts correctly because
-        step numbers are appended to the filename.
+        ``step-*.pt`` files. Numeric step parsing is used so ``step-100.pt``
+        correctly sorts after ``step-20.pt``.
         """
-        if not ckpt_dir.is_dir():
-            return None
-        ckpts = sorted(ckpt_dir.glob("step-*.pt"))
-        return ckpts[-1] if ckpts else None
+        return get_latest_checkpoint(ckpt_dir)
 
     def load_checkpoint(self, path: str | Path) -> None:
         """Restore training state from a checkpoint.
@@ -723,10 +780,14 @@ class Trainer:
             desc="training",
         )
         start_epoch = self.curr_step // self.steps_per_epoch
+        resume_offset = self.curr_step % self.steps_per_epoch
 
         for epoch in range(start_epoch, tc.num_epochs):
-            self.reset_data_iter()
-            for step_idx in range(self.steps_per_epoch):
+            start_step_idx = resume_offset if epoch == start_epoch else 0
+            self.reset_data_iter(
+                start_from=int(tc.load_prior_start) + int(start_step_idx)
+            )
+            for step_idx in range(start_step_idx, self.steps_per_epoch):
                 batch = next(self.data_iter)
                 step = epoch * self.steps_per_epoch + step_idx + 1
                 if step <= self.curr_step:
@@ -828,6 +889,11 @@ class Trainer:
                     break
             if self.curr_step >= self.total_steps:
                 break
+
+        if tc.save_every > 0 and tc.checkpoint_dir and self.curr_step > 0:
+            final_checkpoint = Path(tc.checkpoint_dir) / f"step-{self.curr_step}.pt"
+            if not final_checkpoint.exists():
+                self.save_checkpoint(self.curr_step)
 
 
 def main() -> None:

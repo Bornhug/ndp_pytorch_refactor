@@ -790,6 +790,7 @@ def build_finetune_config(
     )
     tc.wandb_dir = str(args.wandb_dir) if args.wandb_dir else None
     tc.wandb_mode = str(args.wandb_mode)
+    tc.wandb_resume = str(args.wandb_resume)
     tc.eval_every = 0
     tc.num_workers = 0
     tc.micro_progress = False
@@ -1046,7 +1047,7 @@ def maybe_init_wandb_run(
                 "finetune_config": asdict(config),
                 "task_split": task_payload,
             },
-            resume="allow",
+            resume=tc.wandb_resume,
             mode=tc.wandb_mode,
         )
     except Exception as exc:
@@ -1121,13 +1122,15 @@ def add_shared_cli_args(parser, *, include_dataset: bool) -> None:
     parser.add_argument("--weight-decay", type=float, default=None)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--verbose", action="store_true")
-    parser.add_argument("--wandb-log", action="store_true", default=True)
+    default_training = Config().training
+    parser.add_argument("--wandb-log", action="store_true", default=default_training.wandb_log)
     parser.add_argument("--no-wandb", dest="wandb_log", action="store_false")
-    parser.add_argument("--wandb-project", type=str, default="TabICL-regression03")
-    parser.add_argument("--wandb-name", type=str, default=None)
-    parser.add_argument("--wandb-id", type=str, default=None)
-    parser.add_argument("--wandb-mode", type=str, default="offline")
-    parser.add_argument("--wandb-dir", type=str, default=None)
+    parser.add_argument("--wandb-project", type=str, default=default_training.wandb_project)
+    parser.add_argument("--wandb-name", type=str, default=default_training.wandb_name)
+    parser.add_argument("--wandb-id", type=str, default=default_training.wandb_id)
+    parser.add_argument("--wandb-mode", type=str, default=default_training.wandb_mode)
+    parser.add_argument("--wandb-dir", type=str, default=default_training.wandb_dir)
+    parser.add_argument("--wandb-resume", type=str, default=default_training.wandb_resume)
 
 
 def run_task_split_finetune(

@@ -29,7 +29,7 @@ def add_tabicl_repo(tabicl_repo: str | Path) -> Path:
     return src
 
 
-def build_dataset(config: Any):
+def build_dataset(config: Any, *, start_from: int | None = None):
     """Build a pre-generated prior dataset from ``config.prior_dir``."""
     if config.tabicl_repo is None:
         raise ValueError(
@@ -58,7 +58,7 @@ def build_dataset(config: Any):
         batch_size=config.batch_size,
         ddp_world_size=1,
         ddp_rank=0,
-        start_from=config.load_prior_start,
+        start_from=config.load_prior_start if start_from is None else int(start_from),
         delete_after_load=config.delete_after_load,
         device=config.prior_device,
     )

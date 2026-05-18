@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import math
 import random
+import re
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import torch
 
 from neural_diffusion_processes.regressor import denormalize_y, normalize_y
+
+RUN_DIR_RE = re.compile(r"run(\d+)$")
+CHECKPOINT_RE = re.compile(r"step-(\d+)\.pt$")
+BATCH_RE = re.compile(r"batch_(\d+)\.pt$")
 
 
 def infer_lr_schedule_steps(config, total_steps: int) -> Tuple[int, int]:
@@ -85,6 +91,20 @@ def set_seed(np_seed: int, torch_seed: int) -> None:
         torch.cuda.manual_seed_all(torch_seed)
 
 
+def resolve_amp_dtype(dtype_name: str) -> torch.dtype:
+    """Map config dtype names to PyTorch autocast dtypes."""
+    name = str(dtype_name).lower()
+    if name in {"float16", "fp16", "half"}:
+        return torch.float16
+    if name in {"bfloat16", "bf16"}:
+        return torch.bfloat16
+    if name in {"float32", "fp32"}:
+        return torch.float32
+    raise ValueError(
+        f"Unsupported training dtype {dtype_name!r}; use float16, bfloat16, or float32."
+    )
+
+
 def split_context_target(
     X: torch.Tensor, y: torch.Tensor, train_size: int
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -94,3 +114,122 @@ def split_context_target(
     x_target = X[:, train_size:, :]
     y_target = y[:, train_size:]
     return x_context, y_context, x_target, y_target
+
+
+def infer_next_checkpoint_dir(runs_root: str | Path) -> Path:
+    """Return the next unused ``runXX`` directory below ``runs_root``.
+
+    Existing folders named like ``run01`` or ``run12`` are scanned, and the next
+    numeric suffix is selected. Non-matching directories are ignored.
+    """
+    root = Path(runs_root).expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+
+    used_indices = []
+    for path in root.iterdir():
+        if not path.is_dir():
+            continue
+        match = RUN_DIR_RE.fullmatch(path.name)
+        if match:
+            used_indices.append(int(match.group(1)))
+
+    next_index = max(used_indices, default=0) + 1
+    return root / f"run{next_index:02d}"
+
+
+def infer_latest_run_dir(runs_root: str | Path) -> Path | None:
+    """Return the highest-numbered existing ``runXX`` directory, if any."""
+    root = Path(runs_root).expanduser()
+    if not root.is_dir():
+        return None
+
+    numbered_runs = []
+    for path in root.iterdir():
+        if not path.is_dir():
+            continue
+        match = RUN_DIR_RE.fullmatch(path.name)
+        if match:
+            numbered_runs.append((int(match.group(1)), path))
+
+    if not numbered_runs:
+        return None
+    return max(numbered_runs, key=lambda item: item[0])[1]
+
+
+def checkpoint_step(path: str | Path) -> int:
+    """Extract the numeric training step from a ``step-*.pt`` checkpoint."""
+    match = CHECKPOINT_RE.fullmatch(Path(path).name)
+    if not match:
+        return -1
+    return int(match.group(1))
+
+
+def get_latest_checkpoint(ckpt_dir: str | Path) -> Path | None:
+    """Find the highest-step checkpoint file in a checkpoint directory."""
+    directory = Path(ckpt_dir)
+    if not directory.is_dir():
+        return None
+    checkpoints = [
+        path for path in directory.glob("step-*.pt") if checkpoint_step(path) >= 0
+    ]
+    if not checkpoints:
+        return None
+    return max(checkpoints, key=checkpoint_step)
+
+
+def checkpoint_curr_step(path: str | Path) -> int:
+    """Read ``curr_step`` from a checkpoint, falling back to the filename step."""
+    fallback = checkpoint_step(path)
+    checkpoint = torch.load(path, map_location="cpu")
+    if isinstance(checkpoint, dict):
+        return int(checkpoint.get("curr_step", fallback))
+    return fallback
+
+
+def prior_batch_index(path: Path) -> int | None:
+    """Return the numeric index from ``batch_*.pt`` or ``None`` if unmatched."""
+    match = BATCH_RE.fullmatch(path.name)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
+def prior_start_for_step(
+    load_prior_start: int, curr_step: int, steps_per_epoch: int
+) -> int:
+    """Return the first prior batch index needed for the current training step."""
+    if steps_per_epoch <= 0:
+        return int(load_prior_start)
+    return int(load_prior_start) + (int(curr_step) % int(steps_per_epoch))
+
+
+def infer_steps_per_epoch(config) -> int:
+    """Infer epoch length from pre-generated prior batch files.
+
+    Training is pre-generated-prior-only: every ``batch_*.pt`` file in
+    ``training.prior_dir`` at or after ``load_prior_start`` counts as one
+    optimizer step.
+    """
+    prior_dir = config.training.prior_dir
+    if prior_dir is None:
+        raise ValueError(
+            "training.prior_dir is required; live TabICL prior generation is "
+            "not supported in TabICL_regression03 training."
+        )
+
+    p = Path(prior_dir).expanduser()
+    if not p.is_dir():
+        raise FileNotFoundError(f"prior_dir not found: {p}")
+
+    start = int(config.training.load_prior_start)
+    count = 0
+    for path in p.glob("batch_*.pt"):
+        batch_index = prior_batch_index(path)
+        if batch_index is not None and batch_index >= start:
+            count += 1
+    if count <= 0:
+        raise FileNotFoundError(
+            f"no pre-generated batch_*.pt files found in {p} "
+            f"at or after index {start}"
+        )
+    return count
