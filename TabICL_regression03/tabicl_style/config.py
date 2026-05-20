@@ -35,7 +35,7 @@ class OptimizerConfig:
 class TrainingConfig:
     # Batch sizing and training length.
     batch_size: int = 32
-    micro_batch_size: int = 8
+    micro_batch_size: int = 4
     num_epochs: int = 10
 
     # Loss choice and target-normalization safety filters.
@@ -54,13 +54,13 @@ class TrainingConfig:
     # Device, precision, and PyTorch runtime behavior.
     # PyTorch device used for model/loss computation; WSL ndp normally uses "cuda".
     device: str = "cuda"
-    # Autocast dtype used only when amp=True.
-    dtype: str = "float16"
+    # Autocast dtype used only when amp=True; "auto" prefers bf16 on supported CUDA GPUs.
+    dtype: str = "auto"
     # Enable CUDA mixed precision to reduce memory use and usually speed training.
-    amp: bool = False
+    amp: bool = True
     # Optional torch.compile graph optimization. Use Python 3.11 + torch 2.8/cu129
     # with CUDA compiler tools installed; Python 3.12 + torch 2.3 cannot compile.
-    torch_compile: bool = True
+    torch_compile: bool = False
     # Compilation mode passed to torch.compile when torch_compile=True. "default"
     # avoids CUDA graph capture issues from repeated gradient-accumulation forwards;
     # "reduce-overhead" can be faster only for stricter static-shape loops.

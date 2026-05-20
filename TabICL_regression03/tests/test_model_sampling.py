@@ -131,6 +131,26 @@ def test_loss_and_sampling_smoke_with_context() -> None:
         assert torch.isfinite(preds).all()
 
 
+def test_sampling_amp_request_is_cpu_safe() -> None:
+    model = _make_model()
+    process = _make_process(num_timesteps=8)
+    preds = process.sample(
+        None,
+        torch.randn(2, 3, 2),
+        model=model,
+        x_context=torch.randn(2, 4, 2),
+        y_context=torch.randn(2, 4, 1),
+        output_dim=1,
+        num_sample_steps=4,
+        method="ddim",
+        amp=True,
+        amp_dtype=torch.float16,
+    )
+
+    assert preds.shape == (2, 3, 1)
+    assert torch.isfinite(preds).all()
+
+
 def test_split_loss_helpers_match_compat_loss() -> None:
     model = _make_model()
     process = _make_process(num_timesteps=8)
@@ -181,7 +201,7 @@ def test_denoising_prediction_loss_reduces_in_float32() -> None:
     assert loss_value.ndim == 0
 
 
-def test_regressor_wrapper_predict_repeated_batches_repeats() -> None:
+def test_regressor_wrapper_predict_repeated_samples_repeats_sequentially() -> None:
     model = _make_model()
     process = _make_process(num_timesteps=8)
     wrapper = NDPRegressorWrapper(
@@ -203,6 +223,41 @@ def test_regressor_wrapper_predict_repeated_batches_repeats() -> None:
     assert single.shape == (3,)
     assert torch.isfinite(torch.from_numpy(repeated)).all()
     assert torch.isfinite(torch.from_numpy(single)).all()
+
+
+def test_regressor_wrapper_passes_amp_settings_to_sampler() -> None:
+    class DummyProcess:
+        def __init__(self) -> None:
+            self.sample_kwargs = None
+            self.sample_count = 0
+            self.batch_sizes = []
+
+        def sample(self, key, x, **kwargs):
+            del key
+            self.sample_kwargs = kwargs
+            self.sample_count += 1
+            self.batch_sizes.append(x.shape[0])
+            return torch.zeros(x.shape[0], x.shape[1], kwargs["output_dim"])
+
+    process = DummyProcess()
+    wrapper = NDPRegressorWrapper(
+        torch.nn.Identity(),
+        process,
+        torch.device("cpu"),
+        num_sampling_steps=4,
+        sampling_method="ddim",
+        amp=True,
+        amp_dtype=torch.bfloat16,
+    )
+
+    wrapper.fit(torch.randn(5, 2).numpy(), torch.randn(5).numpy())
+    out = wrapper.predict_repeated(torch.randn(3, 2).numpy(), 2)
+
+    assert out.shape == (2, 3)
+    assert process.sample_count == 2
+    assert process.batch_sizes == [1, 1]
+    assert process.sample_kwargs["amp"] is True
+    assert process.sample_kwargs["amp_dtype"] == torch.bfloat16
 
 
 def test_ddim_final_step_returns_denoised_prediction() -> None:

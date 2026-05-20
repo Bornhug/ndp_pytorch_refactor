@@ -121,6 +121,8 @@ class NDPRegressorWrapper:
         num_sampling_steps: int = 500,
         sampling_method: str = "ddpm",
         ddim_eta: float = 0.0,
+        amp: bool = False,
+        amp_dtype: torch.dtype = torch.float16,
     ) -> None:
         self.model = model
         self.model.eval()
@@ -129,6 +131,8 @@ class NDPRegressorWrapper:
         self.num_sampling_steps = int(num_sampling_steps)
         self.sampling_method = str(sampling_method).lower()
         self.ddim_eta = float(ddim_eta)
+        self.amp = bool(amp)
+        self.amp_dtype = amp_dtype
 
         self.X_train: np.ndarray | None = None
         self.y_train: np.ndarray | None = None
@@ -139,7 +143,13 @@ class NDPRegressorWrapper:
         return self
 
     def predict_repeated(self, X_test: np.ndarray, num_repeats: int) -> np.ndarray:
-        """Return repeated stochastic predictions with one batched sampler call."""
+        """Return repeated stochastic predictions sequentially.
+
+        Full-row benchmark evaluation can have thousands of context+target
+        points. Running all repeats as one expanded CUDA batch can exceed
+        scaled-dot-product attention launch limits, so repeats are sampled one
+        at a time and concatenated afterward.
+        """
         if self.X_train is None or self.y_train is None:
             raise RuntimeError("Must call fit() before predict().")
         if int(num_repeats) <= 0:
@@ -156,25 +166,25 @@ class NDPRegressorWrapper:
         x_target = (
             torch.from_numpy(X_test.astype(np.float32)).to(self.device).unsqueeze(0)
         )
-        if repeat_count > 1:
-            x_context = x_context.expand(repeat_count, -1, -1)
-            y_context = y_context.expand(repeat_count, -1, -1)
-            x_target = x_target.expand(repeat_count, -1, -1)
+        predictions = []
+        for _ in range(repeat_count):
+            y_pred_norm = self.process.sample(
+                None,
+                x_target,
+                model=self.model,
+                x_context=x_context,
+                y_context=y_context,
+                output_dim=y_context.shape[-1],
+                num_sample_steps=self.num_sampling_steps,
+                method=self.sampling_method,
+                eta=self.ddim_eta,
+                amp=self.amp,
+                amp_dtype=self.amp_dtype,
+            )
+            y_pred = denormalize_y(y_pred_norm, mean, std)
+            predictions.append(y_pred.squeeze(-1).detach().cpu())
 
-        y_pred_norm = self.process.sample(
-            None,
-            x_target,
-            model=self.model,
-            x_context=x_context,
-            y_context=y_context,
-            output_dim=y_context.shape[-1],
-            num_sample_steps=self.num_sampling_steps,
-            method=self.sampling_method,
-            eta=self.ddim_eta,
-        )
-
-        y_pred = denormalize_y(y_pred_norm, mean, std)
-        return y_pred.squeeze(-1).detach().cpu().numpy()
+        return torch.cat(predictions, dim=0).numpy()
 
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         """Return one prediction vector for sklearn-style callers."""

@@ -27,6 +27,7 @@ class SweepConfig:
     sampling_steps: list[int]
     ddim_eta: float
     max_features_eval: int
+    max_rows_eval: int
     new_instances_eval: int
     n_splits: int
     n_repeats: int
@@ -84,6 +85,8 @@ def build_eval_command(
         str(float(config.ddim_eta)),
         "--max-features-eval",
         str(int(config.max_features_eval)),
+        "--max-rows-eval",
+        str(int(config.max_rows_eval)),
         "--new-instances-eval",
         str(int(config.new_instances_eval)),
         "--n-splits",
@@ -254,9 +257,16 @@ def parse_args() -> SweepConfig:
         default=32,
     )
     parser.add_argument(
+        "--max-rows-eval",
+        type=int,
+        default=1000,
+        help="Skip datasets with more than this many rows; <=0 disables row filtering.",
+    )
+    parser.add_argument(
         "--new-instances-eval",
         type=int,
-        default=200,
+        default=0,
+        help="Maximum rows per dataset passed to evaluation.py; <=0 uses all rows.",
     )
     parser.add_argument(
         "--n-splits",
@@ -303,6 +313,7 @@ def parse_args() -> SweepConfig:
         sampling_steps=parse_sampling_steps(args.sampling_steps),
         ddim_eta=float(args.ddim_eta),
         max_features_eval=int(args.max_features_eval),
+        max_rows_eval=int(args.max_rows_eval),
         new_instances_eval=int(args.new_instances_eval),
         n_splits=int(args.n_splits),
         n_repeats=int(args.n_repeats),

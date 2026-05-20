@@ -22,6 +22,7 @@ if str(ROOT) not in sys.path:
 
 from tabicl_style.evaluation import (
     DEFAULT_MAX_FEATURES_EVAL,
+    DEFAULT_MAX_ROWS_EVAL,
     DEFAULT_NEW_INSTANCES_EVAL,
     TABPFN_REGRESSION_DATASETS,
     _load_checkpoint,
@@ -150,6 +151,7 @@ def sweep_checkpoints(
     num_sampling_steps: int,
     sampling_method: str,
     max_features_eval: int,
+    max_rows_eval: int,
     new_instances_eval: int,
     n_splits: int,
     random_state: int,
@@ -164,6 +166,7 @@ def sweep_checkpoints(
     print("Loading regression benchmark datasets once for the full sweep...", flush=True)
     datasets = get_regression_datasets(
         max_features_eval=max_features_eval,
+        max_rows_eval=max_rows_eval,
         new_instances_eval=new_instances_eval,
         random_state=random_state,
         verbose=True,
@@ -179,6 +182,7 @@ def sweep_checkpoints(
             "num_sampling_steps": int(num_sampling_steps),
             "sampling_method": str(sampling_method),
             "max_features_eval": int(max_features_eval),
+            "max_rows_eval": int(max_rows_eval),
             "new_instances_eval": int(new_instances_eval),
             "n_splits": int(n_splits),
             "random_state": int(random_state),
@@ -282,7 +286,18 @@ def main() -> None:
         type=int,
         default=DEFAULT_MAX_FEATURES_EVAL,
     )
-    parser.add_argument("--new-instances-eval", type=int, default=DEFAULT_NEW_INSTANCES_EVAL)
+    parser.add_argument(
+        "--max-rows-eval",
+        type=int,
+        default=DEFAULT_MAX_ROWS_EVAL,
+        help="Skip datasets with more than this many rows; <=0 disables row filtering.",
+    )
+    parser.add_argument(
+        "--new-instances-eval",
+        type=int,
+        default=DEFAULT_NEW_INSTANCES_EVAL,
+        help="Maximum rows per dataset; <=0 uses all rows.",
+    )
     parser.add_argument("--n-splits", type=int, default=5)
     parser.add_argument("--random-state", type=int, default=0)
     parser.add_argument(
@@ -319,6 +334,7 @@ def main() -> None:
         num_sampling_steps=int(args.num_sampling_steps),
         sampling_method=str(args.sampling_method),
         max_features_eval=int(args.max_features_eval),
+        max_rows_eval=int(args.max_rows_eval),
         new_instances_eval=int(args.new_instances_eval),
         n_splits=int(args.n_splits),
         random_state=int(args.random_state),

@@ -7,7 +7,7 @@ TabPFN paper (AutoML / OpenML-CTR23 benchmarks).
 Protocol:
   - Fetch datasets by OpenML ID.
   - Preprocess: ordinal-encode categoricals, coerce numerics.
-  - Subsample large datasets to a fixed number of instances.
+  - Optionally subsample large datasets to a fixed number of instances.
   - Repeated evaluation on fixed data splits by default (1 split x 20 repetitions).
   - Report R2, RMSE, MAE per dataset and mean across datasets.
 """
@@ -52,6 +52,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from neural_diffusion_processes.regressor import NDPRegressorWrapper
+from tabicl_style.utils import amp_dtype_name, resolve_amp_settings
 
 SKLEARN_DATA_HOME = Path(
     os.environ.get("SCIKIT_LEARN_DATA", str(ROOT / ".sklearn_data"))
@@ -96,7 +97,8 @@ TABPFN_REGRESSION_DATASETS: Dict[str, int] = {
 }
 
 DEFAULT_MAX_FEATURES_EVAL = 32
-DEFAULT_NEW_INSTANCES_EVAL = 1000
+DEFAULT_NEW_INSTANCES_EVAL = 0
+DEFAULT_MAX_ROWS_EVAL = 1000
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +247,7 @@ def get_regression_datasets(
     *,
     max_features_eval: int = DEFAULT_MAX_FEATURES_EVAL,
     new_instances_eval: int = DEFAULT_NEW_INSTANCES_EVAL,
+    max_rows_eval: int = DEFAULT_MAX_ROWS_EVAL,
     random_state: int = 0,
     verbose: bool = True,
     use_cache: bool = True,
@@ -253,8 +256,9 @@ def get_regression_datasets(
     """Load TabPFN regression benchmark datasets.
 
     Each dataset is loaded from cache when possible, otherwise fetched from
-    OpenML and cached after preprocessing. Datasets that exceed the feature
-    limit are skipped, and large datasets are subsampled with a fixed RNG seed.
+    OpenML and cached after preprocessing. Datasets that exceed the feature or
+    row-count limits are skipped, and remaining datasets are optionally
+    subsampled with a fixed RNG seed when ``new_instances_eval`` is positive.
 
     Returns:
         dict mapping dataset_name -> (X, y) where X is float32, y is float32.
@@ -304,8 +308,16 @@ def get_regression_datasets(
                 )
             continue
 
-        # Subsample if needed
-        if new_instances_eval < len(y):
+        if max_rows_eval > 0 and len(y) > max_rows_eval:
+            if verbose:
+                print(
+                    f"  Skipped: too many rows ({len(y)} > {max_rows_eval})",
+                    flush=True,
+                )
+            continue
+
+        # Subsample only when a positive row cap is requested.
+        if new_instances_eval > 0 and new_instances_eval < len(y):
             rng = np.random.default_rng(random_state)
             idx = rng.choice(len(y), size=new_instances_eval, replace=False)
             X = X[idx]
@@ -407,9 +419,17 @@ def eval_model(
         rep_prediction_chunks = [[] for _ in range(repeat_count)]
         fold_logs = []
 
-        for fold_idx, (train_idx, test_idx) in enumerate(
-            dataset_splits[dataset_name], start=1
-        ):
+        fold_iterator = dataset_splits[dataset_name]
+        if tqdm is not None:
+            fold_iterator = tqdm(
+                fold_iterator,
+                desc=f"{dataset_name} {split_label}s",
+                unit=split_label,
+                leave=False,
+                position=1,
+            )
+
+        for fold_idx, (train_idx, test_idx) in enumerate(fold_iterator, start=1):
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
 
@@ -607,6 +627,31 @@ def main() -> Dict[str, float]:
         type=str,
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
+    amp_group = parser.add_mutually_exclusive_group()
+    amp_group.add_argument(
+        "--amp",
+        dest="amp",
+        action="store_true",
+        default=None,
+        help="Enable CUDA autocast for model forwards during evaluation.",
+    )
+    amp_group.add_argument(
+        "--no-amp",
+        dest="amp",
+        action="store_false",
+        default=None,
+        help="Disable evaluation autocast even if the checkpoint config used AMP.",
+    )
+    parser.add_argument(
+        "--amp-dtype",
+        type=str,
+        default=None,
+        choices=["auto", "float16", "bfloat16", "float32"],
+        help=(
+            "Evaluation autocast dtype. Defaults to checkpoint config dtype; "
+            "'auto' uses bfloat16 on supported CUDA GPUs, otherwise float16."
+        ),
+    )
     parser.add_argument("--torch-compile", action="store_true")
     parser.add_argument("--torch-compile-mode", type=str, default="reduce-overhead")
     parser.add_argument(
@@ -614,7 +659,18 @@ def main() -> Dict[str, float]:
         type=int,
         default=DEFAULT_MAX_FEATURES_EVAL,
     )
-    parser.add_argument("--new-instances-eval", type=int, default=DEFAULT_NEW_INSTANCES_EVAL)
+    parser.add_argument(
+        "--max-rows-eval",
+        type=int,
+        default=DEFAULT_MAX_ROWS_EVAL,
+        help="Skip datasets with more than this many rows; <=0 disables row filtering.",
+    )
+    parser.add_argument(
+        "--new-instances-eval",
+        type=int,
+        default=DEFAULT_NEW_INSTANCES_EVAL,
+        help="Maximum rows per dataset; <=0 uses all rows.",
+    )
     parser.add_argument("--n-splits", type=int, default=1)
     parser.add_argument("--n-repeats", type=int, default=20)
     parser.add_argument("--random-state", type=int, default=0)
@@ -648,6 +704,25 @@ def main() -> Dict[str, float]:
         torch_compile=bool(args.torch_compile),
         torch_compile_mode=args.torch_compile_mode,
     )
+    eval_amp_requested = (
+        bool(getattr(config.training, "amp", False))
+        if args.amp is None
+        else bool(args.amp)
+    )
+    eval_amp_dtype_name = (
+        str(getattr(config.training, "dtype", "float16"))
+        if args.amp_dtype is None
+        else str(args.amp_dtype)
+    )
+    eval_amp, eval_amp_dtype = resolve_amp_settings(
+        eval_amp_requested,
+        eval_amp_dtype_name,
+        device=device,
+    )
+    if eval_amp:
+        print(f"Evaluation AMP: enabled (dtype={amp_dtype_name(eval_amp_dtype)})")
+    else:
+        print("Evaluation AMP: not used")
 
     regressor = NDPRegressorWrapper(
         model=model,
@@ -656,6 +731,8 @@ def main() -> Dict[str, float]:
         num_sampling_steps=args.num_sampling_steps,
         sampling_method=args.sampling_method,
         ddim_eta=args.ddim_eta,
+        amp=eval_amp,
+        amp_dtype=eval_amp_dtype,
     )
 
     dataset_names = None
@@ -665,6 +742,7 @@ def main() -> Dict[str, float]:
     print("Loading regression benchmark datasets...")
     datasets = get_regression_datasets(
         max_features_eval=args.max_features_eval,
+        max_rows_eval=args.max_rows_eval,
         new_instances_eval=args.new_instances_eval,
         random_state=args.random_state,
         verbose=True,
@@ -701,7 +779,10 @@ def main() -> Dict[str, float]:
                 "num_sampling_steps": int(args.num_sampling_steps),
                 "sampling_method": args.sampling_method,
                 "ddim_eta": float(args.ddim_eta),
+                "amp": bool(eval_amp),
+                "amp_dtype": amp_dtype_name(eval_amp_dtype),
                 "max_features_eval": int(args.max_features_eval),
+                "max_rows_eval": int(args.max_rows_eval),
                 "new_instances_eval": int(args.new_instances_eval),
                 "n_splits": int(args.n_splits),
                 "n_repeats": int(args.n_repeats),

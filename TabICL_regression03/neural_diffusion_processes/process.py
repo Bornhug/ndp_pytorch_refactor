@@ -323,6 +323,8 @@ class GaussianDiffusion:
         num_sample_steps: int | None = None,
         method: str = "ddpm",
         eta: float = 0.0,
+        amp: bool = False,
+        amp_dtype: torch.dtype | None = None,
     ) -> torch.Tensor:
         """Draw target values from the learned reverse process.
 
@@ -341,6 +343,12 @@ class GaussianDiffusion:
             generator=key,
         )
         schedule = _build_reverse_schedule(len(self.betas), num_sample_steps)
+        amp_enabled = (
+            bool(amp)
+            and x.device.type == "cuda"
+            and amp_dtype is not None
+            and amp_dtype != torch.float32
+        )
         for step_idx, t_int in enumerate(schedule):
             t_batch = torch.full(
                 (batch_size,),
@@ -348,13 +356,19 @@ class GaussianDiffusion:
                 device=x.device,
                 dtype=torch.long,
             )
-            eps_hat = model(
-                x_target=x,
-                y_target=y,
-                t=t_batch,
-                x_context=x_context,
-                y_context=y_context,
-            )
+            with torch.autocast(
+                device_type="cuda",
+                dtype=amp_dtype or torch.float16,
+                enabled=amp_enabled,
+            ):
+                eps_hat = model(
+                    x_target=x,
+                    y_target=y,
+                    t=t_batch,
+                    x_context=x_context,
+                    y_context=y_context,
+                )
+            eps_hat = eps_hat.float()
             next_t = schedule[step_idx + 1] if step_idx + 1 < len(schedule) else -1
             y = self.reverse_step(
                 key,

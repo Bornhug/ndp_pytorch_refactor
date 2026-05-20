@@ -28,6 +28,7 @@ def test_run_sweep_builds_ddim_commands_and_aggregates_results(
         sampling_steps=[250, 125, 50, 10, 5],
         ddim_eta=0.0,
         max_features_eval=32,
+        max_rows_eval=1000,
         new_instances_eval=20,
         n_splits=1,
         n_repeats=1,
@@ -45,6 +46,7 @@ def test_run_sweep_builds_ddim_commands_and_aggregates_results(
         assert command[0] == sys.executable
         assert "--sampling-method" in command
         assert command[command.index("--sampling-method") + 1] == "ddim"
+        assert command[command.index("--max-rows-eval") + 1] == "1000"
 
         step = int(command[command.index("--num-sampling-steps") + 1])
         seen_steps.append(step)

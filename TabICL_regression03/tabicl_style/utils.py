@@ -91,9 +91,26 @@ def set_seed(np_seed: int, torch_seed: int) -> None:
         torch.cuda.manual_seed_all(torch_seed)
 
 
-def resolve_amp_dtype(dtype_name: str) -> torch.dtype:
-    """Map config dtype names to PyTorch autocast dtypes."""
+def _device_type(device) -> str:
+    """Return a normalized PyTorch device type from a string or torch.device."""
+    if device is None:
+        return ""
+    if isinstance(device, torch.device):
+        return device.type
+    return torch.device(str(device)).type
+
+
+def resolve_amp_dtype(dtype_name: str, device=None) -> torch.dtype:
+    """Map config dtype names, including ``auto``, to PyTorch autocast dtypes."""
     name = str(dtype_name).lower()
+    if name == "auto":
+        if _device_type(device) == "cuda" and torch.cuda.is_available():
+            try:
+                if torch.cuda.is_bf16_supported():
+                    return torch.bfloat16
+            except Exception:
+                pass
+        return torch.float16
     if name in {"float16", "fp16", "half"}:
         return torch.float16
     if name in {"bfloat16", "bf16"}:
@@ -101,8 +118,36 @@ def resolve_amp_dtype(dtype_name: str) -> torch.dtype:
     if name in {"float32", "fp32"}:
         return torch.float32
     raise ValueError(
-        f"Unsupported training dtype {dtype_name!r}; use float16, bfloat16, or float32."
+        "Unsupported AMP dtype "
+        f"{dtype_name!r}; use auto, float16, bfloat16, or float32."
     )
+
+
+def amp_dtype_name(dtype: torch.dtype) -> str:
+    """Return a stable short dtype name for logs and JSON output."""
+    if dtype == torch.bfloat16:
+        return "bfloat16"
+    if dtype == torch.float16:
+        return "float16"
+    if dtype == torch.float32:
+        return "float32"
+    return str(dtype).replace("torch.", "")
+
+
+def resolve_amp_settings(
+    use_amp: bool,
+    dtype_name: str,
+    *,
+    device=None,
+) -> tuple[bool, torch.dtype]:
+    """Resolve whether AMP should run and which autocast dtype to use."""
+    amp_dtype = resolve_amp_dtype(dtype_name, device=device)
+    amp_enabled = (
+        bool(use_amp)
+        and _device_type(device) == "cuda"
+        and amp_dtype != torch.float32
+    )
+    return amp_enabled, amp_dtype
 
 
 def split_context_target(

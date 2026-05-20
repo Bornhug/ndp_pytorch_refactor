@@ -91,11 +91,14 @@ If `checkpoint_dir` is explicitly set, `Trainer` auto-loads the latest
 python TabICL_regression03/tabicl_style/evaluation.py \
   --checkpoint TabICL_regression03/runs/run01/step-50000.pt \
   --device cuda \
+  --amp \
+  --amp-dtype auto \
   --num-sampling-steps 500 \
   --sampling-method ddpm \
   --max-features-eval 32 \
-  --new-instances-eval 200 \
-  --n-splits 5 \
+  --max-rows-eval 1000 \
+  --new-instances-eval 0 \
+  --n-splits 10 \
   --n-repeats 20 \
   --random-state 0 \
   --output-json TabICL_regression03/runs/run01/step-50000_ddpm500.json
@@ -107,6 +110,8 @@ To evaluate only selected datasets:
 python TabICL_regression03/tabicl_style/evaluation.py \
   --checkpoint TabICL_regression03/runs/run01/step-50000.pt \
   --device cuda \
+  --amp \
+  --amp-dtype auto \
   --num-sampling-steps 500 \
   --sampling-method ddpm \
   --datasets abalone,boston \
@@ -117,17 +122,26 @@ python TabICL_regression03/tabicl_style/evaluation.py \
 
 ```bash
 python TabICL_regression03/tabicl_style/evaluation.py \
-  --checkpoint TabICL_regression03/runs/run01/step-30000.pt \
+  --checkpoint TabICL_regression03/runs/run_1000t_20260520_122626/step-30000.pt \
   --device cuda \
-  --num-sampling-steps 50 \
-  --sampling-method ddim \
+  --amp \
+  --amp-dtype auto \
+  --num-sampling-steps 1000 \
+  --sampling-method ddpm \
   --ddim-eta 0.0 \
   --max-features-eval 32 \
+  --max-rows-eval 0 \
   --new-instances-eval 200 \
   --n-splits 5 \
   --n-repeats 20 \
   --random-state 0 \
-  --output-json TabICL_regression03/runs/run01/step-30000_ddim50.json
+  --output-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddpm1000.json
+```
+
+To force full precision evaluation even when a checkpoint config used AMP, add:
+
+```bash
+--no-amp
 ```
 
 ## Sweep Saved Checkpoints
@@ -139,8 +153,9 @@ python TabICL_regression03/tabicl_style/run_checkpoint_sweep.py \
   --num-sampling-steps 500 \
   --sampling-method ddpm \
   --max-features-eval 32 \
-  --new-instances-eval 200 \
-  --n-splits 5 \
+  --max-rows-eval 1000 \
+  --new-instances-eval 0 \
+  --n-splits 10 \
   --random-state 0 \
   --output-json TabICL_regression03/runs/run01/checkpoint_sweep_ddpm500.json \
   --plot-dir TabICL_regression03/runs/run01/evaluation_plots
@@ -156,8 +171,9 @@ python TabICL_regression03/tabicl_style/run_ddim_eval_sweep.py \
   --sampling-steps 250,125,50,10,5 \
   --ddim-eta 0.0 \
   --max-features-eval 32 \
-  --new-instances-eval 200 \
-  --n-splits 5 \
+  --max-rows-eval 1000 \
+  --new-instances-eval 0 \
+  --n-splits 10 \
   --n-repeats 20 \
   --random-state 0
 ```

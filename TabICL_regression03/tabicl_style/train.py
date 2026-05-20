@@ -51,7 +51,8 @@ from tabicl_style.utils import (
     infer_steps_per_epoch,
     normalize_y,
     prior_start_for_step,
-    resolve_amp_dtype,
+    amp_dtype_name,
+    resolve_amp_settings,
     set_seed,
     split_context_target,
 )
@@ -333,15 +334,23 @@ class Trainer:
             weight_decay=config.optimizer.weight_decay,
         )
 
-        self.amp = bool(tc.amp and "cuda" in tc.device)
-        amp_dtype = resolve_amp_dtype(tc.dtype) if self.amp else torch.float32
+        self.amp, self.amp_dtype = resolve_amp_settings(
+            bool(tc.amp),
+            tc.dtype,
+            device=self.device,
+        )
         self.scaler = torch.cuda.amp.GradScaler(
-            enabled=self.amp and amp_dtype == torch.float16
+            enabled=self.amp and self.amp_dtype == torch.float16
         )
         if self.amp:
-            self.amp_context = torch.autocast(device_type="cuda", dtype=amp_dtype)
+            self.amp_context = torch.autocast(
+                device_type="cuda",
+                dtype=self.amp_dtype,
+            )
+            print(f"Training AMP: enabled (dtype={amp_dtype_name(self.amp_dtype)})")
         else:
             self.amp_context = nullcontext()
+            print("Training AMP: not used")
 
         self.diffusion_key = torch.Generator(device=self.device)
         self.diffusion_key.manual_seed(tc.torch_seed)
