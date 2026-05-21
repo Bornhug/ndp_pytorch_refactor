@@ -144,6 +144,18 @@ To force full precision evaluation even when a checkpoint config used AMP, add:
 --no-amp
 ```
 
+## Evaluate Saved Prediction Uncertainty With QICE
+
+Run this after `evaluation.py --output-json`; it reuses the saved repeated
+predictions and does not reload the checkpoint:
+
+```bash
+python TabICL_regression03/tabicl_style/evaluation_uncertainty.py \
+  --input-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddpm1000.json \
+  --num-bins 10 \
+  --output-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddpm1000_uncertainty.json
+```
+
 ## Sweep Saved Checkpoints
 
 ```bash

@@ -13,6 +13,26 @@ if str(ROOT) not in sys.path:
 from tabicl_style import evaluation
 
 
+class _DeterministicRegressor:
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
+        return None
+
+    def predict_repeated(self, X_test: np.ndarray, repeat_count: int) -> np.ndarray:
+        prediction = np.asarray(X_test[:, 0], dtype=np.float32)
+        return np.tile(prediction[None, :], (int(repeat_count), 1))
+
+
+class _TwoFoldSplitter:
+    def __init__(self, *args, **kwargs) -> None:
+        return None
+
+    def split(self, X: np.ndarray):
+        return [
+            (np.asarray([2, 3]), np.asarray([0, 1])),
+            (np.asarray([0, 1]), np.asarray([2, 3])),
+        ]
+
+
 def _patch_tiny_dataset(monkeypatch, *, rows: int = 8) -> None:
     X = np.arange(rows * 3, dtype=np.float32).reshape(rows, 3)
     y = np.arange(rows, dtype=np.float32)
@@ -108,4 +128,58 @@ def test_max_rows_eval_happens_before_subsampling(monkeypatch) -> None:
             rows=1001,
         )
         is None
+    )
+
+
+def test_eval_model_se_uses_folds_within_dataset_and_datasets_overall(monkeypatch) -> None:
+    def fake_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+        base = float(np.mean(y_true))
+        return {
+            "R2": base,
+            "RMSE": base + 10.0,
+            "MAE": base + 20.0,
+        }
+
+    monkeypatch.setattr(evaluation, "KFold", _TwoFoldSplitter)
+    monkeypatch.setattr(evaluation, "_compute_regression_metrics", fake_metrics)
+
+    X = np.arange(4, dtype=np.float32).reshape(4, 1)
+    datasets = {
+        "dataset_a": (X, np.asarray([1.0, 1.0, 3.0, 3.0], dtype=np.float32)),
+        "dataset_b": (X, np.asarray([5.0, 5.0, 9.0, 9.0], dtype=np.float32)),
+    }
+
+    metrics, details = evaluation.eval_model(
+        _DeterministicRegressor(),
+        datasets,
+        n_splits=2,
+        n_repeats=1,
+        return_details=True,
+    )
+
+    dataset_a_metrics = details["datasets"]["dataset_a"]["metrics"]
+    dataset_b_metrics = details["datasets"]["dataset_b"]["metrics"]
+
+    assert dataset_a_metrics["R2_FOLD_VALUES"] == [1.0, 3.0]
+    assert dataset_a_metrics["R2"] == 2.0
+    assert np.isclose(dataset_a_metrics["R2_SE"], np.std([1.0, 3.0]) / np.sqrt(2.0))
+
+    assert dataset_b_metrics["R2_FOLD_VALUES"] == [5.0, 9.0]
+    assert dataset_b_metrics["R2"] == 7.0
+    assert np.isclose(dataset_b_metrics["R2_SE"], np.std([5.0, 9.0]) / np.sqrt(2.0))
+
+    assert metrics["R2"] == 4.5
+    assert np.isclose(metrics["R2_SE"], np.std([2.0, 7.0]) / np.sqrt(2.0))
+    assert metrics["R2_DATASET_VALUES"] == [2.0, 7.0]
+
+    assert details["overall_metrics"]["RMSE"] == 14.5
+    assert np.isclose(
+        details["overall_metrics"]["RMSE_SE"],
+        np.std([12.0, 17.0]) / np.sqrt(2.0),
+    )
+    assert details["overall_metrics"]["RMSE_DATASET_VALUES"] == [12.0, 17.0]
+    assert details["overall_metrics"]["MAE"] == 24.5
+    assert np.isclose(
+        details["overall_metrics"]["MAE_SE"],
+        np.std([22.0, 27.0]) / np.sqrt(2.0),
     )

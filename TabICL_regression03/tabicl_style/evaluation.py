@@ -357,11 +357,27 @@ def _compute_regression_metrics(
 
 
 def _standard_error(values: list[float]) -> float:
-    """Return the standard error over split-level metric values."""
+    """Return the standard error over the provided metric values."""
     if not values:
         return float("nan")
     values_np = np.asarray(values, dtype=np.float64)
     return float(np.std(values_np) / np.sqrt(values_np.shape[0]))
+
+
+def _aggregate_metric_values(values: list[float]) -> Dict[str, Any]:
+    """Return mean, standard error, and raw values for one metric series."""
+    if not values:
+        return {
+            "mean": float("nan"),
+            "se": float("nan"),
+            "values": [],
+        }
+    values_float = [float(v) for v in values]
+    return {
+        "mean": float(np.mean(values_float)),
+        "se": _standard_error(values_float),
+        "values": values_float,
+    }
 
 
 def eval_model(
@@ -391,15 +407,13 @@ def eval_model(
         raise ValueError(f"n_repeats must be positive, got {n_repeats}")
     if int(n_splits) <= 1:
         split_label = "split"
-        split_count = 1
     else:
         split_label = "fold"
-        split_count = int(n_splits)
 
     repeat_count = int(n_repeats)
-    split_r2_values: list[list[float]] = [[] for _ in range(split_count)]
-    split_rmse_values: list[list[float]] = [[] for _ in range(split_count)]
-    split_mae_values: list[list[float]] = [[] for _ in range(split_count)]
+    dataset_r2_values: list[float] = []
+    dataset_rmse_values: list[float] = []
+    dataset_mae_values: list[float] = []
 
     dataset_splits: Dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
     for dataset_name, (X, _y) in items:
@@ -418,6 +432,9 @@ def eval_model(
         y_pred_all = []
         rep_prediction_chunks = [[] for _ in range(repeat_count)]
         fold_logs = []
+        fold_r2_values: list[float] = []
+        fold_rmse_values: list[float] = []
+        fold_mae_values: list[float] = []
 
         fold_iterator = dataset_splits[dataset_name]
         if tqdm is not None:
@@ -452,9 +469,9 @@ def eval_model(
                 y_test_np,
                 np.asarray(y_pred_mean, dtype=np.float32),
             )
-            split_r2_values[fold_idx - 1].append(fold_metrics["R2"])
-            split_rmse_values[fold_idx - 1].append(fold_metrics["RMSE"])
-            split_mae_values[fold_idx - 1].append(fold_metrics["MAE"])
+            fold_r2_values.append(fold_metrics["R2"])
+            fold_rmse_values.append(fold_metrics["RMSE"])
+            fold_mae_values.append(fold_metrics["MAE"])
             fold_logs.append(
                 {
                     "fold_index": int(fold_idx),
@@ -473,11 +490,30 @@ def eval_model(
             for chunks in rep_prediction_chunks
         ]
 
-        dataset_metrics = _compute_regression_metrics(y_true_np, y_pred_np)
+        r2_summary = _aggregate_metric_values(fold_r2_values)
+        rmse_summary = _aggregate_metric_values(fold_rmse_values)
+        mae_summary = _aggregate_metric_values(fold_mae_values)
+        dataset_metrics = {
+            "R2": r2_summary["mean"],
+            "R2_SE": r2_summary["se"],
+            "R2_FOLD_VALUES": r2_summary["values"],
+            "RMSE": rmse_summary["mean"],
+            "RMSE_SE": rmse_summary["se"],
+            "RMSE_FOLD_VALUES": rmse_summary["values"],
+            "MAE": mae_summary["mean"],
+            "MAE_SE": mae_summary["se"],
+            "MAE_FOLD_VALUES": mae_summary["values"],
+        }
+        dataset_r2_values.append(dataset_metrics["R2"])
+        dataset_rmse_values.append(dataset_metrics["RMSE"])
+        dataset_mae_values.append(dataset_metrics["MAE"])
 
         metrics[f"{dataset_name}/R2"] = dataset_metrics["R2"]
         metrics[f"{dataset_name}/RMSE"] = dataset_metrics["RMSE"]
         metrics[f"{dataset_name}/MAE"] = dataset_metrics["MAE"]
+        metrics[f"{dataset_name}/R2_SE"] = dataset_metrics["R2_SE"]
+        metrics[f"{dataset_name}/RMSE_SE"] = dataset_metrics["RMSE_SE"]
+        metrics[f"{dataset_name}/MAE_SE"] = dataset_metrics["MAE_SE"]
         if details is not None:
             details["datasets"][dataset_name] = {
                 "metrics": dataset_metrics,
@@ -487,33 +523,33 @@ def eval_model(
                 "folds": fold_logs,
             }
 
-    overall_r2_folds = [float(np.mean(vals)) for vals in split_r2_values if vals]
-    overall_rmse_folds = [float(np.mean(vals)) for vals in split_rmse_values if vals]
-    overall_mae_folds = [float(np.mean(vals)) for vals in split_mae_values if vals]
+    overall_r2 = _aggregate_metric_values(dataset_r2_values)
+    overall_rmse = _aggregate_metric_values(dataset_rmse_values)
+    overall_mae = _aggregate_metric_values(dataset_mae_values)
 
-    if overall_r2_folds:
-        metrics["R2"] = float(np.mean(overall_r2_folds))
-        metrics["R2_SE"] = _standard_error(overall_r2_folds)
-        metrics["R2_FOLD_VALUES"] = [float(v) for v in overall_r2_folds]
-    if overall_rmse_folds:
-        metrics["RMSE"] = float(np.mean(overall_rmse_folds))
-        metrics["RMSE_SE"] = _standard_error(overall_rmse_folds)
-        metrics["RMSE_FOLD_VALUES"] = [float(v) for v in overall_rmse_folds]
-    if overall_mae_folds:
-        metrics["MAE"] = float(np.mean(overall_mae_folds))
-        metrics["MAE_SE"] = _standard_error(overall_mae_folds)
-        metrics["MAE_FOLD_VALUES"] = [float(v) for v in overall_mae_folds]
+    if dataset_r2_values:
+        metrics["R2"] = overall_r2["mean"]
+        metrics["R2_SE"] = overall_r2["se"]
+        metrics["R2_DATASET_VALUES"] = overall_r2["values"]
+    if dataset_rmse_values:
+        metrics["RMSE"] = overall_rmse["mean"]
+        metrics["RMSE_SE"] = overall_rmse["se"]
+        metrics["RMSE_DATASET_VALUES"] = overall_rmse["values"]
+    if dataset_mae_values:
+        metrics["MAE"] = overall_mae["mean"]
+        metrics["MAE_SE"] = overall_mae["se"]
+        metrics["MAE_DATASET_VALUES"] = overall_mae["values"]
     if details is not None:
         details["overall_metrics"] = {
             "R2": metrics.get("R2"),
             "R2_SE": metrics.get("R2_SE"),
-            "R2_FOLD_VALUES": metrics.get("R2_FOLD_VALUES"),
+            "R2_DATASET_VALUES": metrics.get("R2_DATASET_VALUES"),
             "RMSE": metrics.get("RMSE"),
             "RMSE_SE": metrics.get("RMSE_SE"),
-            "RMSE_FOLD_VALUES": metrics.get("RMSE_FOLD_VALUES"),
+            "RMSE_DATASET_VALUES": metrics.get("RMSE_DATASET_VALUES"),
             "MAE": metrics.get("MAE"),
             "MAE_SE": metrics.get("MAE_SE"),
-            "MAE_FOLD_VALUES": metrics.get("MAE_FOLD_VALUES"),
+            "MAE_DATASET_VALUES": metrics.get("MAE_DATASET_VALUES"),
         }
     if details is not None:
         return metrics, details
