@@ -62,6 +62,15 @@ print(torch.__version__, torch.version.cuda, tuple(y.shape))
 PY
 ```
 
+## Vast.ai Setup
+
+For Vast.ai, do not run the local/WSL environment setup above. Use the separate
+guide instead:
+
+```bash
+less TabICL_regression03/vast_ai.md
+```
+
 ## Train
 
 `train.py` uses the default dataclass settings from
