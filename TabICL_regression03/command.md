@@ -122,20 +122,20 @@ python TabICL_regression03/tabicl_style/evaluation.py \
 
 ```bash
 python TabICL_regression03/tabicl_style/evaluation.py \
-  --checkpoint TabICL_regression03/runs/run_1000t_20260520_122626/step-30000.pt \
+  --checkpoint TabICL_regression03/runs/run04/step-30000.pt \
   --device cuda \
   --amp \
   --amp-dtype auto \
-  --num-sampling-steps 1000 \
+  --num-sampling-steps 500 \
   --sampling-method ddpm \
   --ddim-eta 0.0 \
   --max-features-eval 32 \
   --max-rows-eval 0 \
   --new-instances-eval 200 \
   --n-splits 5 \
-  --n-repeats 20 \
+  --n-repeats 100 \
   --random-state 0 \
-  --output-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddpm1000.json
+  --output-json TabICL_regression03/runs/run04/step-30000_ddpm500_repeats100.json
 ```
 
 To force full precision evaluation even when a checkpoint config used AMP, add:
@@ -151,9 +151,101 @@ predictions and does not reload the checkpoint:
 
 ```bash
 python TabICL_regression03/tabicl_style/evaluation_uncertainty.py \
-  --input-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddpm1000.json \
+  --input-json TabICL_regression03/runs/step-25200_ddpm_500.pt.json \
   --num-bins 10 \
-  --output-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddpm1000_uncertainty.json
+  --output-json TabICL_regression03/runs/step-25200_ddpm_500.pt-uncertainty.json
+```
+
+For a saved DDIM evaluation JSON:
+
+```bash
+python TabICL_regression03/tabicl_style/evaluation_uncertainty.py \
+  --input-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddim50.json \
+  --num-bins 10 \
+  --output-json TabICL_regression03/runs/run_1000t_20260520_122626/step-30000_ddim50_uncertainty.json
+```
+
+## Evaluate TabPFN Full-Distribution Uncertainty
+
+Install TabPFN in the active environment if needed:
+
+```bash
+pip install tabpfn
+```
+
+This uses the same regression03 dataset loader, preprocessing, 200-row
+subsampling, and 5-fold split protocol as the saved NDP comparison runs.
+The evaluator now requests TabPFN v2 explicitly by default. TabPFN's full
+predictive distribution is converted into 10 equal-probability quantile bins
+for QICE:
+
+```bash
+python TabICL_regression03/tabicl_style/evaluation_tabpfn_uncertainty.py \
+  --device cuda \
+  --tabpfn-model-version v2 \
+  --max-features-eval 32 \
+  --max-rows-eval 0 \
+  --new-instances-eval 200 \
+  --n-splits 5 \
+  --random-state 0 \
+  --num-bins 10 \
+  --output-json TabICL_regression03/runs/tabpfn_uncertainty_rows200_bins10.json
+```
+
+To evaluate only selected datasets:
+
+```bash
+python TabICL_regression03/tabicl_style/evaluation_tabpfn_uncertainty.py \
+  --device cuda \
+  --tabpfn-model-version v2 \
+  --datasets abalone,boston \
+  --max-features-eval 32 \
+  --max-rows-eval 0 \
+  --new-instances-eval 200 \
+  --n-splits 5 \
+  --random-state 0 \
+  --num-bins 10 \
+  --output-json TabICL_regression03/runs/tabpfn_uncertainty_subset_bins10.json
+```
+
+## Evaluate Distribution Baseline Uncertainty
+
+Install optional baseline packages in the active environment if needed:
+
+```bash
+pip install ngboost catboost xgboost
+```
+
+This compares NGBoost, CatBoost multi-quantile, XGBoost quantile,
+GaussianProcessRegressor, and conformalized XGBoost quantile regression on the
+same 200-row, 5-fold regression03 protocol. Missing optional packages are
+recorded as skipped entries unless `--fail-on-missing` is added:
+
+```bash
+python TabICL_regression03/tabicl_style/evaluation_distribution_baselines.py \
+  --methods ngboost,catboost,xgboost,gaussian_process,conformal_quantile \
+  --max-features-eval 32 \
+  --max-rows-eval 0 \
+  --new-instances-eval 200 \
+  --n-splits 5 \
+  --random-state 0 \
+  --num-bins 10 \
+  --output-json TabICL_regression03/runs/distribution_baselines_rows200_bins10.json
+```
+
+To evaluate only selected datasets:
+
+```bash
+python TabICL_regression03/tabicl_style/evaluation_distribution_baselines.py \
+  --methods ngboost,catboost,xgboost,gaussian_process,conformal_quantile \
+  --datasets abalone,boston \
+  --max-features-eval 32 \
+  --max-rows-eval 0 \
+  --new-instances-eval 200 \
+  --n-splits 5 \
+  --random-state 0 \
+  --num-bins 10 \
+  --output-json TabICL_regression03/runs/distribution_baselines_subset_bins10.json
 ```
 
 ## Sweep Saved Checkpoints
