@@ -11,6 +11,7 @@ REG03_REMOTE="${REG03_REMOTE:-}"
 REG03_SYNC_INTERVAL="${REG03_SYNC_INTERVAL:-600}"
 REG03_TMUX_SESSION="${REG03_TMUX_SESSION:-reg03-train}"
 REG03_DEVICE="${REG03_DEVICE:-cuda}"
+REG03_WANDB_API_KEY="${REG03_WANDB_API_KEY:-${WANDB_API_KEY:-}}"
 
 REG03_ROOT="$REG03_WORKDIR/TabICL_regression03"
 REG03_SKLEARN_DATA="$REG03_ROOT/.sklearn_data"
@@ -65,6 +66,10 @@ Training input overrides, required on Vast unless the default WSL paths exist:
   REG03_TABICL_REPO="/path/to/tabicl"
   REG03_PRIOR_DIR="/path/to/tabicl/data_regression/stage1"
 
+Optional W&B configuration:
+  REG03_WANDB_API_KEY="..."  Login key used by setup/train, also exported as WANDB_API_KEY.
+  REG03_WANDB_MODE="online"  Use "disabled" to turn W&B off for training.
+
 Commands:
   setup          Install tools/env, sparse-checkout regression03, pull cloud state, run doctor.
   pull-code      Clone or update branch01 with sparse checkout for TabICL_regression03 only.
@@ -93,6 +98,9 @@ export_runtime_env() {
   export SCIKIT_LEARN_DATA="$REG03_SKLEARN_DATA"
   export TABARENA_CACHE="$REG03_TABARENA_CACHE"
   export WANDB_DIR="$REG03_WANDB_DIR"
+  if [[ -n "$REG03_WANDB_API_KEY" ]]; then
+    export WANDB_API_KEY="$REG03_WANDB_API_KEY"
+  fi
   ensure_reg03_dirs
 }
 
@@ -198,6 +206,35 @@ install_env() {
     -i "${REG03_PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}" \
     --trusted-host "${REG03_PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}" \
     -r "$REG03_ROOT/requirements.txt"
+}
+
+configure_wandb() {
+  export_runtime_env
+  case "${REG03_WANDB_MODE:-}" in
+    disabled|offline)
+      log "W&B mode is ${REG03_WANDB_MODE}; skipping online login."
+      return
+      ;;
+  esac
+
+  if [[ -z "$REG03_WANDB_API_KEY" ]]; then
+    log "W&B API key not set; set REG03_WANDB_API_KEY or WANDB_API_KEY for online logging."
+    return
+  fi
+
+  conda_env_exists || die "Conda env $REG03_ENV does not exist. Run install-env first."
+  log "Configuring W&B login from REG03_WANDB_API_KEY/WANDB_API_KEY."
+  conda run --no-capture-output -n "$REG03_ENV" python - <<'PY'
+import os
+
+import wandb
+
+key = os.environ.get("WANDB_API_KEY")
+if not key:
+    raise SystemExit("WANDB_API_KEY is missing")
+wandb.login(key=key, relogin=True)
+print("W&B login configured.")
+PY
 }
 
 require_remote() {
@@ -387,6 +424,7 @@ PY
 train() {
   [[ -d "$REG03_ROOT" ]] || die "$REG03_ROOT not found. Run pull-code first."
   conda_env_exists || die "Conda env $REG03_ENV does not exist. Run install-env first."
+  configure_wandb
   check_training_inputs
   export_runtime_env
 
@@ -540,6 +578,7 @@ setup() {
   install_system_tools
   pull_code
   install_env
+  configure_wandb
   sync_pull
   doctor
   log "Setup complete. Run: bash TabICL_regression03/scripts/vast_regression03.sh menu"
