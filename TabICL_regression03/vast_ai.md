@@ -1,39 +1,24 @@
 # TabICL_regression03 Vast.ai Quick Start
 
-Use this on disposable Vast.ai CUDA Ubuntu instances. Do not run the local/WSL
-environment setup in `command.md`; the Vast shell script handles setup.
+Use this guide for disposable Vast.ai CUDA Ubuntu instances with small root
+disks. The workflow is:
 
-## 1. Prepare Cloud Storage Once
+1. Keep durable state in Google Drive.
+2. Bootstrap the Vast machine from GitHub.
+3. Stream the large prior ZIP from Google Drive directly into extracted
+   `batch_*.pt` files.
+4. Inspect the extracted data.
+5. Start training only after you explicitly approve it.
 
-Create durable cloud storage before renting the GPU. Since you have Google
-Drive storage, use an `rclone` Google Drive remote.
+The script does not start training during `setup` or `prior-extract`.
 
-You need:
+## 1. Prepare Google Drive Once
 
-- a Google Drive folder for regression03 state
-- an `rclone` Google Drive remote name, for example `gdrive`
-- a base path, for example `ndp-regression03`
-
-The guide below assumes this remote path:
-
-```bash
-gdrive:ndp-regression03
-```
-
-On your local computer, install `rclone` if needed:
+Create an `rclone` Google Drive remote locally. In WSL, run:
 
 ```bash
-# macOS
-brew install rclone
-
-# Ubuntu / WSL
 sudo apt-get update
 sudo apt-get install -y rclone
-```
-
-Create the Google Drive remote:
-
-```bash
 rclone config
 ```
 
@@ -55,202 +40,284 @@ Keep this "gdrive" remote? y
 q) Quit config
 ```
 
-Create the regression03 folder and test access:
+Create and test the project folder:
 
 ```bash
 rclone mkdir gdrive:ndp-regression03
 rclone lsd gdrive:ndp-regression03
 ```
 
-During `rclone config`, create a Google Drive remote named `gdrive`. The Vast
-instance then needs the same rclone config at:
+Use this Google Drive layout:
 
-```bash
-~/.config/rclone/rclone.conf
+```text
+gdrive:ndp-regression03/
+  runs/
+    runs05/
+      step-42000.pt
+    prior/
+      stage1_15000batches.zip
+  sklearn_data/
+  tabarena_cache/
+  wandb/
 ```
 
-That config contains your private cloud credentials, so do not commit it to git.
+Put previous checkpoints under `runs/`. Put the large prior archive at:
 
-To copy it to Vast manually, open it locally:
+```text
+gdrive:ndp-regression03/runs/prior/stage1_15000batches.zip
+```
+
+The normal sync commands exclude `runs/prior/**`, so this large archive is not
+accidentally downloaded during setup. The archive is handled by the explicit
+`prior-extract` command instead.
+
+## 2. Copy rclone Config to Vast
+
+The Vast machine needs the same rclone credential file that works in WSL. This
+file is private. Do not commit it to git.
+
+On WSL, show the config:
 
 ```bash
 cat ~/.config/rclone/rclone.conf
 ```
 
-Then paste the contents into the Vast instance when this guide tells you to run:
+You should see a section like:
+
+```ini
+[gdrive]
+type = drive
+token = ...
+```
+
+SSH into the Vast machine and paste that config:
 
 ```bash
+mkdir -p ~/.config/rclone
 nano ~/.config/rclone/rclone.conf
 ```
 
-## 2. Start Setup
+Save in `nano` with:
 
-Get the SSH command from the Vast.ai instance page. It usually looks like:
+```text
+Ctrl+O
+Enter
+Ctrl+X
+```
+
+Test on Vast:
 
 ```bash
-ssh root@<host> -p <port>
+rclone lsd gdrive:
+rclone lsd gdrive:ndp-regression03
 ```
 
-If Vast gives you a private key, save it locally and restrict permissions:
+If those commands list folders, Google Drive access is ready.
+
+## 3. Bootstrap the Vast Machine
+
+SSH into the Vast instance. Vast usually gives a command like:
 
 ```bash
-chmod 600 ~/.ssh/<vast_key>
-ssh -i ~/.ssh/<vast_key> root@<host> -p <port>
+ssh -p <port> root@<host> -L 8080:localhost:8080
 ```
 
-Optional local SSH alias:
-
-```sshconfig
-Host vast-reg03
-  HostName <host>
-  Port <port>
-  User root
-  IdentityFile ~/.ssh/<vast_key>
-  ServerAliveInterval 30
-  ServerAliveCountMax 4
-```
-
-Then connect with:
-
-```bash
-ssh vast-reg03
-```
-
-After SSH connects, run this block on the Vast instance. Replace the exported
-values with your actual storage, prior-data, and W&B locations/secrets.
+On Vast, set the reusable environment variables:
 
 ```bash
 export REG03_REMOTE="gdrive:ndp-regression03"
 export REG03_TABICL_REPO="/workspace/tabicl"
+export REG03_TABICL_REPO_URL="https://github.com/soda-inria/tabicl.git"
+export REG03_TABICL_BRANCH="main"
 export REG03_PRIOR_DIR="/workspace/tabicl/data_regression/stage1"
+export REG03_PRIOR_ARCHIVE_REMOTE="$REG03_REMOTE/runs/prior/stage1_15000batches.zip"
+export REG03_PRIOR_TMP_DIR="$REG03_PRIOR_DIR.tmp"
+export REG03_PRIOR_EXPECTED_BATCHES=15000
 export REG03_SYNC_INTERVAL=1800
-export REG03_WANDB_API_KEY="<your_wandb_api_key>"
+# Optional:
+# export REG03_WANDB_API_KEY="<your_wandb_api_key>"
+# export REG03_WANDB_MODE="disabled"
+```
 
-mkdir -p ~/.config/rclone
-nano ~/.config/rclone/rclone.conf
+Run setup:
 
+```bash
 curl -fsSL \
   https://raw.githubusercontent.com/Bornhug/ndp_pytorch_refactor/branch01/TabICL_regression03/scripts/vast_regression03.sh \
   -o /tmp/vast_regression03.sh && \
 bash /tmp/vast_regression03.sh setup
 ```
 
-What this block does:
+`setup` does these things only:
 
-- `REG03_REMOTE` tells the shell where to pull and push durable state.
-- `REG03_TABICL_REPO` points training to the external TabICL source repo.
-- `REG03_PRIOR_DIR` points training to pre-generated prior `batch_*.pt` files.
-- `REG03_SYNC_INTERVAL=1800` makes the background upload loop run every 30 minutes.
-- `REG03_WANDB_API_KEY` lets the shell configure W&B login during setup/training.
-- `mkdir -p ~/.config/rclone` creates the expected rclone config directory.
-- `nano ~/.config/rclone/rclone.conf` is where you paste the Google Drive rclone config.
-- `curl ... -o /tmp/vast_regression03.sh` downloads the helper shell from GitHub.
-- `bash /tmp/vast_regression03.sh setup` runs full machine setup.
+- saves the `REG03_*` values to `~/.reg03_vast_env`
+- installs system tools, including `rclone`, `tmux`, and `bsdtar`
+- sparse-checks out only `TabICL_regression03` from GitHub
+- clones or updates the external TabICL repo at `/workspace/tabicl`
+- creates or updates the `ndp_sim` conda environment
+- syncs previous checkpoints, caches, and W&B files from Google Drive
+- runs `doctor`
 
-## 3. What `vast_regression03.sh` Does
+It does not download the prior ZIP, extract the prior dataset, or start
+training.
 
-The shell is the one-go bootstrap and run helper for a disposable Vast instance.
-It makes the machine look like the expected regression03 environment, restores
-saved state from Google Drive, and then runs training/evaluation inside the
-same conda environment.
+## 4. Stream the Prior ZIP Without Storing It
 
-By default it uses:
+The Vast disk is too small to hold both the 12 GB ZIP and the extracted prior
+dataset at the same time. Do not run `rclone copy` for the ZIP.
+
+Instead, stream it:
 
 ```bash
-REG03_REPO="https://github.com/Bornhug/ndp_pytorch_refactor.git"
-REG03_BRANCH="branch01"
-REG03_WORKDIR="/workspace/ndp_pytorch_refactor"
-REG03_ENV="ndp_sim"
+cd /workspace/ndp_pytorch_refactor
+bash TabICL_regression03/scripts/vast_regression03.sh prior-extract
 ```
 
-It creates and reuses these local paths:
+Internally this runs the equivalent of:
+
+```bash
+rclone cat gdrive:ndp-regression03/runs/prior/stage1_15000batches.zip \
+  | bsdtar -xf - -C /workspace/tabicl/data_regression/stage1.tmp
+```
+
+That means:
+
+- the ZIP stays on Google Drive
+- no local ZIP copy is written to the Vast disk
+- extracted batches are written to `REG03_PRIOR_TMP_DIR`
+- the active `REG03_PRIOR_DIR` is not created yet
+- training is not started
+
+Check progress or final state:
+
+```bash
+bash TabICL_regression03/scripts/vast_regression03.sh prior-status
+```
+
+Expected final status:
 
 ```text
-/workspace/ndp_pytorch_refactor/TabICL_regression03/runs
-/workspace/ndp_pytorch_refactor/TabICL_regression03/.sklearn_data
-/workspace/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache
-/workspace/ndp_pytorch_refactor/TabICL_regression03/wandb
+batch count: 15000
+temp directory: /workspace/tabicl/data_regression/stage1.tmp
+final directory: missing /workspace/tabicl/data_regression/stage1
 ```
 
-When Python commands run, the shell exports:
+If a previous temp extraction exists and you intentionally want to replace it:
 
 ```bash
-SCIKIT_LEARN_DATA=TabICL_regression03/.sklearn_data
-TABARENA_CACHE=TabICL_regression03/tabicl_style/.tabarena_cache
-WANDB_DIR=TabICL_regression03/wandb
+export REG03_PRIOR_OVERWRITE_TMP=1
+bash TabICL_regression03/scripts/vast_regression03.sh prior-extract
 ```
 
-`setup` is the full bootstrap. In order, it:
+## 5. Inspect, Then Activate the Prior Data
 
-1. Creates `~/.config/rclone` so your pasted Google Drive config has a home.
-2. Installs system tools with `apt-get`: `git`, `curl`, `tmux`, `rclone`, and
-   basic certificates/tools.
-3. Clones or updates `branch01` with Git sparse checkout, downloading only
-   `TabICL_regression03`.
-4. Installs Miniconda if needed, creates/updates the `ndp_sim` conda env,
-   installs `cuda-nvcc=12.9.86`, then installs `requirements.txt`.
-5. Runs `sync-pull`, copying existing `runs`, dataset caches, TabArena cache,
-   and W&B logs from Google Drive onto the instance.
-6. Runs `doctor` so you can see whether GPU, PyTorch CUDA, rclone, repo state,
-   caches, and training input paths are valid.
+Inspect the extracted temp dataset first:
 
-The sync commands use `rclone copy`, so they upload/download files without
-deleting extra files on the other side:
+```bash
+ls -lh /workspace/tabicl/data_regression/stage1.tmp | head
+ls -lh /workspace/tabicl/data_regression/stage1.tmp | tail
+df -h /workspace
+bash TabICL_regression03/scripts/vast_regression03.sh prior-status
+```
+
+After inspection, activate it:
+
+```bash
+bash TabICL_regression03/scripts/vast_regression03.sh prior-activate
+```
+
+`prior-activate` verifies the expected batch count and then moves:
 
 ```text
-$REG03_REMOTE/runs           <-> TabICL_regression03/runs
-$REG03_REMOTE/sklearn_data   <-> TabICL_regression03/.sklearn_data
-$REG03_REMOTE/tabarena_cache <-> TabICL_regression03/tabicl_style/.tabarena_cache
-$REG03_REMOTE/wandb          <-> TabICL_regression03/wandb
+/workspace/tabicl/data_regression/stage1.tmp
 ```
 
-`train` checks that `REG03_TABICL_REPO/src` exists and that
-`REG03_PRIOR_DIR` contains `batch_*.pt` files. It then runs
-`tabicl_style.train.Trainer(config).train()` inside `ndp_sim`, overriding the
-training config with your Vast paths. If `REG03_WANDB_API_KEY` or
-`WANDB_API_KEY` is set, the shell also logs in to W&B and exports
-`WANDB_API_KEY` before training. `train-tmux` starts the same command in a tmux
-session named `reg03-train`, so training keeps running after SSH disconnects.
+to:
 
-`eval-latest` finds the newest `step-*.pt` checkpoint under `runs`, runs
-`evaluation.py`, and writes a detailed evaluation JSON next to the checkpoint.
-You can override its defaults with env vars like `REG03_EVAL_REPEATS`,
-`REG03_EVAL_SPLITS`, `REG03_EVAL_DATASETS`, and `REG03_EVAL_OUTPUT`.
-
-`qice-latest` finds the newest non-uncertainty evaluation JSON, runs
-`evaluation_uncertainty.py`, and writes a matching `_uncertainty.json` file.
-
-`status` prints the current branch, latest checkpoint, latest evaluation JSON,
-latest QICE JSON, cache/run sizes, and the tail of the background sync log.
-`shell` opens an activated `ndp_sim` shell with the regression03 cache
-environment variables already exported. `menu` gives an interactive wrapper
-around the same commands.
-
-## 4. Run Training, Sync, Evaluation
-
-Start training and periodic cloud upload:
-
-```bash
-bash TabICL_regression03/scripts/vast_regression03.sh train-tmux
-tmux new -s reg03-sync "bash TabICL_regression03/scripts/vast_regression03.sh sync-loop"
+```text
+/workspace/tabicl/data_regression/stage1
 ```
 
-Check the instance:
+Training uses `REG03_PRIOR_DIR`, so training cannot start successfully until
+this activation step is done.
+
+## 6. Check Before Training
+
+Run:
 
 ```bash
 bash TabICL_regression03/scripts/vast_regression03.sh doctor
 bash TabICL_regression03/scripts/vast_regression03.sh status
 ```
 
-Evaluate latest checkpoint and compute QICE:
+`doctor` should show:
+
+- PyTorch CUDA is available
+- `rclone` can list `gdrive:ndp-regression03`
+- the external TabICL repo has `src/`
+- `REG03_PRIOR_DIR` exists
+- `REG03_PRIOR_DIR` contains exactly `15000` `batch_*.pt` files
+
+If `doctor` warns about the prior directory, do not train yet.
+
+## 7. Start Training Only When Ready
+
+Start training in tmux:
 
 ```bash
-bash TabICL_regression03/scripts/vast_regression03.sh eval-latest
-bash TabICL_regression03/scripts/vast_regression03.sh qice-latest
+bash TabICL_regression03/scripts/vast_regression03.sh train-tmux
 ```
 
-Before stopping the instance:
+Start periodic checkpoint/cache upload in a separate tmux session:
 
 ```bash
+tmux new-session -d -s reg03-sync \
+  "bash /workspace/ndp_pytorch_refactor/TabICL_regression03/scripts/vast_regression03.sh sync-loop"
+```
+
+Attach to training:
+
+```bash
+tmux attach -t reg03-train
+```
+
+Detach without stopping training:
+
+```text
+Ctrl+B
+D
+```
+
+Before stopping the Vast instance, push state back to Google Drive:
+
+```bash
+bash TabICL_regression03/scripts/vast_regression03.sh sync-push
+```
+
+## 8. Common Commands
+
+```bash
+# Show help.
+bash TabICL_regression03/scripts/vast_regression03.sh help
+
+# Re-run setup checks.
+bash TabICL_regression03/scripts/vast_regression03.sh doctor
+
+# Show checkpoints, cache sizes, sync logs, and latest outputs.
+bash TabICL_regression03/scripts/vast_regression03.sh status
+
+# Show prior archive, disk space, counts, and sample files.
+bash TabICL_regression03/scripts/vast_regression03.sh prior-status
+
+# Stream-extract prior ZIP into stage1.tmp only.
+bash TabICL_regression03/scripts/vast_regression03.sh prior-extract
+
+# Move inspected stage1.tmp to active stage1.
+bash TabICL_regression03/scripts/vast_regression03.sh prior-activate
+
+# Start training only after prior activation.
+bash TabICL_regression03/scripts/vast_regression03.sh train-tmux
+
+# Push runs/caches/wandb to Google Drive.
 bash TabICL_regression03/scripts/vast_regression03.sh sync-push
 ```
