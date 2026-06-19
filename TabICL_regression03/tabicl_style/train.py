@@ -41,6 +41,7 @@ from tabicl_style.batching import (
 )
 from tabicl_style.config import Config
 from tabicl_style.data import build_dataloader, build_dataset
+from tabicl_style.lora import apply_lora, is_lora_adapter_key, trainable_parameters
 from tabicl_style.utils import (
     checkpoint_curr_step,
     compute_lr_from_schedule_steps,
@@ -161,6 +162,7 @@ def build_model_and_process(config: Config, device: torch.device):
         num_layers=config.model.num_layers,
         num_timesteps=config.diffusion.timesteps,
     ).to(device)
+    model = apply_lora(model, config).to(device)
 
     betas = build_diffusion_betas(config).to(device)
     process = GaussianDiffusion(betas)
@@ -207,9 +209,9 @@ class EMA:
         """Return EMA weights so checkpoints can save the smoothed model."""
         return self.shadow.state_dict()
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict, *, strict: bool = True):
         """Restore EMA weights when resuming training from a checkpoint."""
-        self.shadow.load_state_dict(state_dict)
+        return self.shadow.load_state_dict(state_dict, strict=strict)
 
 
 def compute_grad_norm(parameters) -> torch.Tensor:
@@ -226,6 +228,35 @@ def compute_grad_norm(parameters) -> torch.Tensor:
             continue
         total = total + p.grad.data.norm(2).pow(2)
     return total.sqrt()
+
+
+def optimizer_step_with_scaler_stats(optimizer, scaler, *, amp: bool) -> Dict[str, float]:
+    """Run the optimizer step and report whether GradScaler skipped it.
+
+    ``GradScaler.step`` skips the wrapped optimizer step when it detects
+    non-finite fp16 gradients. PyTorch does not expose that as a direct flag, so
+    we use the standard signal: the scale decreases after ``update``.
+    """
+    scaler_enabled = bool(amp and scaler is not None and scaler.is_enabled())
+    scale_before = float(scaler.get_scale()) if scaler_enabled else 0.0
+    scaler_step_skipped = 0
+
+    if amp:
+        scaler.step(optimizer)
+        scaler.update()
+        if scaler_enabled:
+            scale_after = float(scaler.get_scale())
+            scaler_step_skipped = int(scale_after < scale_before)
+    else:
+        optimizer.step()
+
+    return {"scaler_step_skipped": int(scaler_step_skipped)}
+
+
+def skipped_optimizer_step_stats(scaler, *, amp: bool) -> Dict[str, float]:
+    """Return optimizer-step log fields when the trainer skips before stepping."""
+    del scaler, amp
+    return {"scaler_step_skipped": 0}
 
 
 # ---------------------------------------------------------------------------
@@ -328,8 +359,11 @@ class Trainer:
         self.model, self.process = build_model_and_process(config, self.device)
         self.ema = EMA(self.model, decay=config.optimizer.ema_rate)
 
+        params_to_optimize = trainable_parameters(self.model)
+        if not params_to_optimize:
+            raise ValueError("No trainable parameters available for the optimizer.")
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(),
+            params_to_optimize,
             lr=config.optimizer.init_lr,
             weight_decay=config.optimizer.weight_decay,
         )
@@ -340,7 +374,7 @@ class Trainer:
             device=self.device,
         )
         self.scaler = torch.cuda.amp.GradScaler(
-            enabled=self.amp and self.amp_dtype == torch.float16
+            enabled=self.amp and self.amp_dtype in (torch.float16, torch.bfloat16)
         )
         if self.amp:
             self.amp_context = torch.autocast(
@@ -382,7 +416,9 @@ class Trainer:
                 )
             self.load_checkpoint(checkpoint_to_load)
         self.model = maybe_compile_model(self.model, config)
-        self.reset_data_iter(start_from=self.current_prior_start())
+        self.reset_data_iter(
+            start_from=self.current_prior_start(),
+        )
 
     # ------------------------------------------------------------------
     # Data
@@ -396,7 +432,12 @@ class Trainer:
             self.steps_per_epoch,
         )
 
-    def reset_data_iter(self, *, start_from: int | None = None) -> None:
+    def reset_data_iter(
+        self,
+        *,
+        start_from: int | None = None,
+        max_batches: int | None = None,
+    ) -> None:
         """Recreate the dataset, DataLoader, and iterator.
 
         This is called at construction and at every epoch boundary. Rebuilding
@@ -404,7 +445,7 @@ class Trainer:
         correct file for fresh epochs and checkpoint resumes.
         """
         tc = self.config.training
-        dataset = build_dataset(tc, start_from=start_from)
+        dataset = build_dataset(tc, start_from=start_from, max_batches=max_batches)
         self.dataloader = build_dataloader(tc, dataset)
         self.data_iter = iter(self.dataloader)
 
@@ -430,12 +471,37 @@ class Trainer:
         """
         ckpt = torch.load(path, map_location=self.device)
         if "state_dict" in ckpt:
-            self.model.load_state_dict(ckpt["state_dict"])
+            strict = not bool(getattr(getattr(self.config, "lora", None), "enabled", False))
+            load_result = self.model.load_state_dict(ckpt["state_dict"], strict=strict)
+            loaded_base_into_lora = False
+            if not strict:
+                unexpected = list(load_result.unexpected_keys)
+                missing = list(load_result.missing_keys)
+                loaded_base_into_lora = bool(missing)
+                if unexpected or any(not is_lora_adapter_key(key) for key in missing):
+                    raise RuntimeError(
+                        "Base checkpoint did not load cleanly into LoRA model: "
+                        f"missing={missing}, unexpected={unexpected}"
+                    )
             if "ema_state_dict" in ckpt:
-                self.ema.load_state_dict(ckpt["ema_state_dict"])
-            if "optimizer_state" in ckpt:
+                if strict:
+                    self.ema.load_state_dict(ckpt["ema_state_dict"])
+                else:
+                    load_result = self.ema.load_state_dict(
+                        ckpt["ema_state_dict"],
+                        strict=False,
+                    )
+                    unexpected = list(load_result.unexpected_keys)
+                    missing = list(load_result.missing_keys)
+                    if unexpected or any(not is_lora_adapter_key(key) for key in missing):
+                        raise RuntimeError(
+                            "EMA checkpoint did not load cleanly into LoRA model: "
+                            f"missing={missing}, unexpected={unexpected}"
+                        )
+            if "optimizer_state" in ckpt and not loaded_base_into_lora:
                 self.optimizer.load_state_dict(ckpt["optimizer_state"])
-            self.curr_step = int(ckpt.get("curr_step", 0))
+            if not loaded_base_into_lora:
+                self.curr_step = int(ckpt.get("curr_step", 0))
         else:
             self.model.load_state_dict(ckpt)
         print(f"Loaded checkpoint from {path}")
@@ -603,7 +669,13 @@ class Trainer:
 
         return {"loss": float(loss.item()), "skipped_micro": False, **stats}
 
-    def run_batch(self, batch, *, step: int) -> Dict[str, float]:
+    def run_batch(
+        self,
+        batch,
+        *,
+        step: int,
+        lr_step: int | None = None,
+    ) -> Dict[str, float]:
         """Run one global training step and maybe update model weights.
 
         The incoming batch is first padded and split into micro-batches. Each
@@ -620,6 +692,7 @@ class Trainer:
         The returned dictionary is the single source for progress-bar and wandb
         training metrics.
         """
+        lr_step_for_schedule = step if lr_step is None else int(lr_step)
         self.model.train()
         self.optimizer.zero_grad(set_to_none=True)
 
@@ -700,7 +773,7 @@ class Trainer:
             self.optimizer.zero_grad(set_to_none=True)
             lr = compute_lr_from_schedule_steps(
                 self.config,
-                step,
+                lr_step_for_schedule,
                 warmup_steps=self.lr_warmup_steps,
                 decay_steps=self.lr_decay_steps,
             )
@@ -710,6 +783,7 @@ class Trainer:
                 "skip_reason": skip_reason,
                 "lr": float(lr),
                 "step": step,
+                "lr_step": lr_step_for_schedule,
                 "total_tasks": int(results["total_tasks"]),
                 "valid_tasks": int(results["valid_tasks"]),
                 "skipped_tiny_std_tasks": int(results["skipped_tiny_std_tasks"]),
@@ -717,6 +791,7 @@ class Trainer:
                 "skipped_nonfinite_tasks": int(results["skipped_nonfinite_tasks"]),
                 "clipped_target_values": int(results["clipped_target_values"]),
                 "skipped_micro_batches": int(results["skipped_micro_batches"]),
+                **skipped_optimizer_step_stats(self.scaler, amp=self.amp),
             }
 
         # If every micro-batch was filtered or failed safely, leave weights
@@ -725,7 +800,7 @@ class Trainer:
             self.optimizer.zero_grad(set_to_none=True)
             lr = compute_lr_from_schedule_steps(
                 self.config,
-                step,
+                lr_step_for_schedule,
                 warmup_steps=self.lr_warmup_steps,
                 decay_steps=self.lr_decay_steps,
             )
@@ -735,6 +810,7 @@ class Trainer:
                 "skip_reason": "no valid micro-batches",
                 "lr": float(lr),
                 "step": step,
+                "lr_step": lr_step_for_schedule,
                 "total_tasks": int(results["total_tasks"]),
                 "valid_tasks": int(results["valid_tasks"]),
                 "skipped_tiny_std_tasks": int(results["skipped_tiny_std_tasks"]),
@@ -742,6 +818,7 @@ class Trainer:
                 "skipped_nonfinite_tasks": int(results["skipped_nonfinite_tasks"]),
                 "clipped_target_values": int(results["clipped_target_values"]),
                 "skipped_micro_batches": int(results["skipped_micro_batches"]),
+                **skipped_optimizer_step_stats(self.scaler, amp=self.amp),
             }
 
         # AMP gradients must be unscaled before clipping; otherwise the clip
@@ -760,28 +837,33 @@ class Trainer:
         # The LR is computed once per optimizer update, not per micro-batch.
         lr = compute_lr_from_schedule_steps(
             self.config,
-            step,
+            lr_step_for_schedule,
             warmup_steps=self.lr_warmup_steps,
             decay_steps=self.lr_decay_steps,
         )
         for group in self.optimizer.param_groups:
             group["lr"] = lr
 
-        # Optimizer step
-        if self.amp:
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-        else:
-            self.optimizer.step()
+        # Optimizer step. With fp16 AMP, GradScaler may skip the wrapped
+        # optimizer update when it detects non-finite gradients.
+        results.update(
+            optimizer_step_with_scaler_stats(
+                self.optimizer,
+                self.scaler,
+                amp=self.amp,
+            )
+        )
 
         # EMA tracks the post-update weights and is saved/evaluated separately.
         self.ema.update(self.model)
 
         if processed > 0:
             results["loss"] /= processed
+        results["skipped"] = False
         results["grad_norm"] = float(grad_norm)
         results["lr"] = float(lr)
         results["step"] = step
+        results["lr_step"] = lr_step_for_schedule
         return results
 
     # ------------------------------------------------------------------
@@ -851,55 +933,40 @@ class Trainer:
                     self.save_checkpoint(step)
 
                 if self.wandb_run is not None:
-                    if results.get("skipped"):
-                        log_dict = {
-                            "step": step,
-                            "train/skipped": 1,
-                            "train/lr": float(results.get("lr", 0.0)),
-                            "train/valid_tasks": int(results.get("valid_tasks", 0)),
-                            "train/total_tasks": int(results.get("total_tasks", 0)),
-                            "train/skipped_tiny_std_tasks": int(
-                                results.get("skipped_tiny_std_tasks", 0)
-                            ),
-                            "train/skipped_extreme_tasks": int(
-                                results.get("skipped_extreme_tasks", 0)
-                            ),
-                            "train/skipped_nonfinite_tasks": int(
-                                results.get("skipped_nonfinite_tasks", 0)
-                            ),
-                            "train/clipped_target_values": int(
-                                results.get("clipped_target_values", 0)
-                            ),
-                            "train/skipped_micro_batches": int(
-                                results.get("skipped_micro_batches", 0)
-                            ),
-                        }
-                    else:
-                        log_dict = {
-                            "step": step,
-                            "train/loss": float(results["loss"]),
-                            "train/lr": float(results.get("lr", 0.0)),
-                            "train/grad_norm": float(
-                                results.get("grad_norm", 0.0)
-                            ),
-                            "train/valid_tasks": int(results.get("valid_tasks", 0)),
-                            "train/total_tasks": int(results.get("total_tasks", 0)),
-                            "train/skipped_tiny_std_tasks": int(
-                                results.get("skipped_tiny_std_tasks", 0)
-                            ),
-                            "train/skipped_extreme_tasks": int(
-                                results.get("skipped_extreme_tasks", 0)
-                            ),
-                            "train/skipped_nonfinite_tasks": int(
-                                results.get("skipped_nonfinite_tasks", 0)
-                            ),
-                            "train/clipped_target_values": int(
-                                results.get("clipped_target_values", 0)
-                            ),
-                            "train/skipped_micro_batches": int(
-                                results.get("skipped_micro_batches", 0)
-                            ),
-                        }
+                    log_dict = {
+                        "step": step,
+                        "train/skipped": int(bool(results.get("skipped", False))),
+                        "train/lr": float(results.get("lr", 0.0)),
+                        "train/valid_tasks": int(results.get("valid_tasks", 0)),
+                        "train/total_tasks": int(results.get("total_tasks", 0)),
+                        "train/skipped_tiny_std_tasks": int(
+                            results.get("skipped_tiny_std_tasks", 0)
+                        ),
+                        "train/skipped_extreme_tasks": int(
+                            results.get("skipped_extreme_tasks", 0)
+                        ),
+                        "train/skipped_nonfinite_tasks": int(
+                            results.get("skipped_nonfinite_tasks", 0)
+                        ),
+                        "train/clipped_target_values": int(
+                            results.get("clipped_target_values", 0)
+                        ),
+                        "train/skipped_micro_batches": int(
+                            results.get("skipped_micro_batches", 0)
+                        ),
+                        "train/scaler_step_skipped": int(
+                            results.get("scaler_step_skipped", 0)
+                        ),
+                    }
+                    if not results.get("skipped"):
+                        log_dict.update(
+                            {
+                                "train/loss": float(results["loss"]),
+                                "train/grad_norm": float(
+                                    results.get("grad_norm", 0.0)
+                                ),
+                            }
+                        )
                     try:
                         self.wandb_run.log(log_dict, step=step)
                     except Exception as exc:

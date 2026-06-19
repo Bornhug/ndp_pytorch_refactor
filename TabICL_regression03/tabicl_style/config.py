@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 
 @dataclass
 class ModelConfig:
-    embedding_size: int = 96
+    embedding_size: int = 128
     num_attention_heads: int = 8
-    num_layers: int = 5
+    num_layers: int = 12
 
 
 @dataclass
@@ -22,13 +22,25 @@ class DiffusionConfig:
 
 @dataclass
 class OptimizerConfig:
-    warmup_fraction: float = 0.10
+    warmup_fraction: float = 0.02
     decay_fraction: float = 0.80
+    lr_schedule: str = "cosine"
+    polynomial_power: float = 1.0
     init_lr: float = 2e-5
-    peak_lr: float = 1e-3
+    peak_lr: float = 2e-4
     end_lr: float = 1e-5
     ema_rate: float = 0.995
     weight_decay: float = 0.0
+
+
+@dataclass
+class LoraConfig:
+    enabled: bool = False
+    rank: int = 8
+    alpha: float = 16.0
+    dropout: float = 0.0
+    train_layer_norm: bool = True
+    train_output_head: bool = True
 
 
 @dataclass
@@ -55,9 +67,9 @@ class TrainingConfig:
     # PyTorch device used for model/loss computation; WSL ndp normally uses "cuda".
     device: str = "cuda"
     # Autocast dtype used only when amp=True; "auto" prefers bf16 on supported CUDA GPUs.
-    dtype: str = "auto"
+    dtype: str = "bf16"
     # Enable CUDA mixed precision to reduce memory use and usually speed training.
-    amp: bool = True
+    amp: bool = False
     # Optional torch.compile graph optimization. Use Python 3.11 + torch 2.8/cu129
     # with CUDA compiler tools installed; Python 3.12 + torch 2.3 cannot compile.
     torch_compile: bool = False
@@ -88,12 +100,12 @@ class TrainingConfig:
     checkpoint_dir: str | None = None
     checkpoint_path: str | None = None
     auto_resume_latest: bool = True
-    save_every: int = 5000
+    save_every: int = 3000
 
     # Weights & Biases logging configuration.
     wandb_log: bool = True
     wandb_project: str = "TabICL-regression03"
-    wandb_name: str | None = None
+    wandb_name: str | None = "preln12-emb128-stage1-gdrive"
     wandb_id: str | None = None
     wandb_dir: str | None = None
     wandb_mode: str = "online"
@@ -111,4 +123,5 @@ class Config:
     model: ModelConfig = field(default_factory=ModelConfig)
     diffusion: DiffusionConfig = field(default_factory=DiffusionConfig)
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
+    lora: LoraConfig = field(default_factory=LoraConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)

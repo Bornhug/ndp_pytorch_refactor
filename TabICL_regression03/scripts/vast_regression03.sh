@@ -24,6 +24,8 @@ REG03_ENV_OVERRIDE_NAMES=(
   REG03_PRIOR_EXPECTED_BATCHES
   REG03_PRIOR_OVERWRITE_TMP
   REG03_WANDB_DIR
+  REG03_CHECKPOINT_DIR
+  REG03_AUTO_RESUME_LATEST
   REG03_PIP_INDEX_URL
   REG03_PIP_TRUSTED_HOST
   REG03_CONDA_FORGE_CHANNEL
@@ -76,6 +78,8 @@ REG03_ROOT="$REG03_WORKDIR/TabICL_regression03"
 REG03_SKLEARN_DATA="$REG03_ROOT/.sklearn_data"
 REG03_TABARENA_CACHE="$REG03_ROOT/tabicl_style/.tabarena_cache"
 REG03_WANDB_DIR="${REG03_WANDB_DIR:-$REG03_ROOT/wandb}"
+REG03_CHECKPOINT_DIR="${REG03_CHECKPOINT_DIR:-}"
+REG03_AUTO_RESUME_LATEST="${REG03_AUTO_RESUME_LATEST:-}"
 REG03_LOG_DIR="$REG03_ROOT/runs/vast_logs"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -128,6 +132,8 @@ Training input paths:
   REG03_PRIOR_TMP_DIR="$REG03_PRIOR_DIR.tmp"
   REG03_PRIOR_EXPECTED_BATCHES="15000"
   REG03_PRIOR_OVERWRITE_TMP="0"
+  REG03_CHECKPOINT_DIR=""       Optional explicit training.checkpoint_dir.
+  REG03_AUTO_RESUME_LATEST=""   Optional training.auto_resume_latest override: 1/0, true/false.
   REG03_CONDA_FORGE_CHANNEL="conda-forge"
   REG03_CUDA_CHANNEL="nvidia"
 
@@ -204,6 +210,12 @@ write_env_file() {
     printf 'export REG03_CONDA_FORGE_CHANNEL=%q\n' "$REG03_CONDA_FORGE_CHANNEL"
     printf 'export REG03_CUDA_CHANNEL=%q\n' "$REG03_CUDA_CHANNEL"
     printf 'export REG03_WANDB_DIR=%q\n' "$REG03_WANDB_DIR"
+    if [[ -n "$REG03_CHECKPOINT_DIR" ]]; then
+      printf 'export REG03_CHECKPOINT_DIR=%q\n' "$REG03_CHECKPOINT_DIR"
+    fi
+    if [[ -n "$REG03_AUTO_RESUME_LATEST" ]]; then
+      printf 'export REG03_AUTO_RESUME_LATEST=%q\n' "$REG03_AUTO_RESUME_LATEST"
+    fi
     if [[ -n "$REG03_WANDB_API_KEY" && "$REG03_WANDB_API_KEY" != \<*\> ]]; then
       printf 'export REG03_WANDB_API_KEY=%q\n' "$REG03_WANDB_API_KEY"
     fi
@@ -698,6 +710,19 @@ tc = config.training
 tc.tabicl_repo = os.environ.get("REG03_TABICL_REPO", tc.tabicl_repo)
 tc.prior_dir = os.environ.get("REG03_PRIOR_DIR", tc.prior_dir)
 tc.wandb_dir = os.environ.get("REG03_WANDB_DIR", tc.wandb_dir)
+if os.environ.get("REG03_CHECKPOINT_DIR"):
+    tc.checkpoint_dir = os.environ["REG03_CHECKPOINT_DIR"]
+if os.environ.get("REG03_AUTO_RESUME_LATEST"):
+    value = os.environ["REG03_AUTO_RESUME_LATEST"].strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        tc.auto_resume_latest = True
+    elif value in {"0", "false", "no", "off"}:
+        tc.auto_resume_latest = False
+    else:
+        raise ValueError(
+            "REG03_AUTO_RESUME_LATEST must be one of "
+            "1/0, true/false, yes/no, on/off."
+        )
 if os.environ.get("REG03_WANDB_MODE"):
     tc.wandb_mode = os.environ["REG03_WANDB_MODE"]
 

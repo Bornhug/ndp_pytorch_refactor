@@ -84,6 +84,7 @@ class BiDimensionalAttentionBlock(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.linear_t = nn.Linear(hidden_dim, hidden_dim)
+        self.norm_s = nn.LayerNorm(hidden_dim)
         self.mha_d = MultiHeadAttention(2 * hidden_dim, num_heads)
         self.mha_n = MultiHeadAttention(2 * hidden_dim, num_heads)
 
@@ -103,7 +104,8 @@ class BiDimensionalAttentionBlock(nn.Module):
         # s: [B, N, D, H]
         # t: [B, H]
         t = self.linear_t(t)[:, None, None, :]
-        y = s + t
+        s_norm = self.norm_s(s)
+        y = s_norm + t
         y = torch.cat([y, y], dim=-1)  # [B, N, D, 2H]
 
         y_att_d = self.mha_d(y, y, y)

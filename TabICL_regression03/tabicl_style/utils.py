@@ -68,6 +68,7 @@ def compute_lr_from_schedule_steps(
     init_lr = config.optimizer.init_lr
     peak_lr = config.optimizer.peak_lr
     end_lr = config.optimizer.end_lr
+    schedule = str(getattr(config.optimizer, "lr_schedule", "cosine")).strip().lower()
 
     if step <= warmup_steps:
         if warmup_steps == 0:
@@ -78,9 +79,23 @@ def compute_lr_from_schedule_steps(
     if decay_steps <= 0:
         return end_lr
 
-    t = min(step - warmup_steps, decay_steps)
-    cosine = 0.5 * (1.0 + math.cos(math.pi * t / float(decay_steps)))
-    return end_lr + (peak_lr - end_lr) * cosine
+    t = min(max(step - warmup_steps, 1), decay_steps)
+    if schedule == "cosine":
+        cosine = 0.5 * (1.0 + math.cos(math.pi * t / float(decay_steps)))
+        return end_lr + (peak_lr - end_lr) * cosine
+    if schedule == "polynomial":
+        power = float(getattr(config.optimizer, "polynomial_power", 1.0))
+        if power < 0.0:
+            raise ValueError("optimizer.polynomial_power must be non-negative.")
+        if decay_steps == 1:
+            progress = 1.0
+        else:
+            progress = (t - 1) / float(decay_steps - 1)
+        return end_lr + (peak_lr - end_lr) * (1.0 - progress) ** power
+    raise ValueError(
+        f"Unsupported optimizer.lr_schedule {schedule!r}. "
+        "Supported schedules: 'cosine', 'polynomial'."
+    )
 
 
 def set_seed(np_seed: int, torch_seed: int) -> None:
@@ -266,8 +281,8 @@ def infer_steps_per_epoch(config) -> int:
     if not p.is_dir():
         raise FileNotFoundError(f"prior_dir not found: {p}")
 
-    start = int(config.training.load_prior_start)
     count = 0
+    start = int(config.training.load_prior_start)
     for path in p.glob("batch_*.pt"):
         batch_index = prior_batch_index(path)
         if batch_index is not None and batch_index >= start:

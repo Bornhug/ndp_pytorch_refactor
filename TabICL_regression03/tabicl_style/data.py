@@ -29,7 +29,12 @@ def add_tabicl_repo(tabicl_repo: str | Path) -> Path:
     return src
 
 
-def build_dataset(config: Any, *, start_from: int | None = None):
+def build_dataset(
+    config: Any,
+    *,
+    start_from: int | None = None,
+    max_batches: int | None = None,
+):
     """Build a pre-generated prior dataset from ``config.prior_dir``."""
     if config.tabicl_repo is None:
         raise ValueError(
@@ -51,7 +56,10 @@ def build_dataset(config: Any, *, start_from: int | None = None):
         )
 
     add_tabicl_repo(config.tabicl_repo)
-    from tabicl.prior.genload import LoadPriorDataset
+    try:
+        from tabicl.prior.genload import LoadPriorDataset
+    except ModuleNotFoundError:
+        from tabicl.prior._genload import LoadPriorDataset
 
     return LoadPriorDataset(
         data_dir=str(prior_dir),
@@ -59,6 +67,7 @@ def build_dataset(config: Any, *, start_from: int | None = None):
         ddp_world_size=1,
         ddp_rank=0,
         start_from=config.load_prior_start if start_from is None else int(start_from),
+        max_batches=None if max_batches is None else int(max_batches),
         delete_after_load=config.delete_after_load,
         device=config.prior_device,
     )
