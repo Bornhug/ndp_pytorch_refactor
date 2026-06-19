@@ -55,7 +55,7 @@ gdrive:ndp-regression03/
     runs05/
       step-42000.pt
     prior/
-      stage1_15000batches.zip
+      stage1_continuous_y_seed123.zip
   sklearn_data/
   tabarena_cache/
   wandb/
@@ -64,7 +64,7 @@ gdrive:ndp-regression03/
 Put previous checkpoints under `runs/`. Put the large prior archive at:
 
 ```text
-gdrive:ndp-regression03/runs/prior/stage1_15000batches.zip
+gdrive:ndp-regression03/runs/prior/stage1_continuous_y_seed123.zip
 ```
 
 The normal sync commands exclude `runs/prior/**`, so this large archive is not
@@ -130,7 +130,7 @@ export REG03_TABICL_REPO="/workspace/tabicl"
 export REG03_TABICL_REPO_URL="https://github.com/soda-inria/tabicl.git"
 export REG03_TABICL_BRANCH="main"
 export REG03_PRIOR_DIR="/workspace/tabicl/data_regression/stage1"
-export REG03_PRIOR_ARCHIVE_REMOTE="$REG03_REMOTE/runs/prior/stage1_15000batches.zip"
+export REG03_PRIOR_ARCHIVE_REMOTE="$REG03_REMOTE/runs/prior/stage1_continuous_y_seed123.zip"
 export REG03_PRIOR_TMP_DIR="$REG03_PRIOR_DIR.tmp"
 export REG03_PRIOR_EXPECTED_BATCHES=15000
 export REG03_SYNC_INTERVAL=1800
@@ -176,7 +176,7 @@ bash TabICL_regression03/scripts/vast_regression03.sh prior-extract
 Internally this runs the equivalent of:
 
 ```bash
-rclone cat gdrive:ndp-regression03/runs/prior/stage1_15000batches.zip \
+rclone cat gdrive:ndp-regression03/runs/prior/stage1_continuous_y_seed123.zip \
   | bsdtar -xf - -C /workspace/tabicl/data_regression/stage1.tmp
 ```
 
