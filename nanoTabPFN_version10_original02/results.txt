@@ -1,0 +1,153 @@
+
+
+
+
+Training with 30k steps and Evaluation with max_columns 32 features filter
+
+For nanoTabPFN_version10_original02, evaluation now works like this:
+1.	Load the 29 TabPFN regression benchmark datasets from OpenML in tabarena_eval/evaluation.py.
+2.	Preprocess features:
+•	drop constant columns
+•	coerce numeric columns to float
+•	ordinal-encode categorical columns
+•	fill remaining missing x with 0.0
+3.	Skip any dataset whose processed feature count is greater than 32.
+4.	If a dataset has more than 200 rows, subsample exactly 200 rows using np.random.default_rng(random_state).choice(...).
+5.	Use one fixed random_state, so the subsampled dataset and CV split are fixed.
+6.	Run 5-fold shuffled CV:
+•	train on 4 folds
+•	test on 1 fold
+•	repeat until every fold has been the test fold once
+7.	For each dataset, concatenate predictions from the 5 test folds and compute:
+•	R2
+•	RMSE
+•	MAE
+8.	For the overall result, average the fold-level overall scores across the 5 folds, and also report standard error:
+•	r2, r2_se
+•	rmse, rmse_se
+•	mae, mae_se
+
+
+{
+  "overall": {
+    "r2": 0.4881140265199873,
+    "r2_se": 0.00632893453800721,
+    "r2_folds": [
+      0.4673607349395752,
+      0.4840480453438229,
+      0.4836511148346795,
+      0.49549174308776855,
+      0.5100184943940904
+    ],
+    "rmse": 555.4179537043758,
+    "rmse_se": 22.53198352974903,
+    "rmse_folds": [
+      571.4906506038425,
+      527.8573991318749,
+      572.3003701992844,
+      477.30590560882615,
+      628.1354429780512
+    ],
+    "mae": 357.17962692789735,
+    "mae_se": 9.877034511967121,
+    "mae_folds": [
+      371.20398003111285,
+      318.66118802714885,
+      367.0294560510665,
+      347.85398675211604,
+      381.14952377804246
+    ]
+  },
+  "datasets": {
+    "abalone": {
+      "r2": 0.28718966245651245,
+      "rmse": 2.5964213024299263,
+      "mae": 2.0580828189849854
+    },
+    "airfoil_self_noise": {
+      "r2": 0.47353559732437134,
+      "rmse": 4.827115937991193,
+      "mae": 3.7853331565856934
+    },
+    "auction_verification": {
+      "r2": 0.5816580057144165,
+      "rmse": 7003.182705027764,
+      "mae": 4321.5400390625
+    },
+    "boston": {
+      "r2": 0.7910590767860413,
+      "rmse": 4.383103631289928,
+      "mae": 2.9076788425445557
+    },
+    "cars": {
+      "r2": 0.8859683871269226,
+      "rmse": 3008.227052600917,
+      "mae": 2047.0345458984375
+    },
+    "concrete_compressive_strength": {
+      "r2": 0.6478532552719116,
+      "rmse": 9.49766712657208,
+      "mae": 6.640567779541016
+    },
+    "cpu_activity": {
+      "r2": 0.9502140283584595,
+      "rmse": 4.448787892741079,
+      "mae": 2.848006010055542
+    },
+    "energy_efficiency": {
+      "r2": 0.8513970971107483,
+      "rmse": 4.000454876784815,
+      "mae": 3.303072214126587
+    },
+    "grid_stability": {
+      "r2": 0.6930360794067383,
+      "rmse": 0.019853260526036153,
+      "mae": 0.015812277793884277
+    },
+    "kin8nm": {
+      "r2": 0.37464380264282227,
+      "rmse": 0.19689106080983534,
+      "mae": 0.15460920333862305
+    },
+    "Moneyball": {
+      "r2": 0.8982462286949158,
+      "rmse": 30.042061375014804,
+      "mae": 23.684314727783203
+    },
+    "pumadyn32nh": {
+      "r2": -0.007335662841796875,
+      "rmse": 0.0333882615414822,
+      "mae": 0.026553593575954437
+    },
+    "QSAR_fish_toxicity": {
+      "r2": 0.4424970746040344,
+      "rmse": 1.054464811198278,
+      "mae": 0.732577383518219
+    },
+    "quake": {
+      "r2": -0.1564016342163086,
+      "rmse": 0.20507485523342003,
+      "mae": 0.15685102343559265
+    },
+    "sensory": {
+      "r2": 0.026978492736816406,
+      "rmse": 0.7994707875428783,
+      "mae": 0.6226834058761597
+    },
+    "socmob": {
+      "r2": 0.6813445687294006,
+      "rmse": 28.223812962887607,
+      "mae": 11.474237442016602
+    },
+    "space_ga": {
+      "r2": 0.4646691083908081,
+      "rmse": 0.15204999797327742,
+      "mae": 0.11405744403600693
+    },
+    "student_performance": {
+      "r2": 0.16728204488754272,
+      "rmse": 3.0508531471601694,
+      "mae": 2.134018659591675
+    }
+  }
+}

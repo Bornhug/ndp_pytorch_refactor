@@ -1,0 +1,51 @@
+python nanoTabPFN_version10_original02/train.py
+
+# Create the required TabPFN v2 border asset once
+python nanoTabPFN_version10_original02/scripts/extract_tabpfn_v2_borders.py \
+  --version v2 \
+  --device cpu \
+  --num-bars 5000 \
+  --output nanoTabPFN_version10_original02/assets/tabpfn_v2_regressor_borders_5000.pt
+
+# Evaluate one checkpoint file directly
+python nanoTabPFN_version10_original02/evaluation.py \
+  --checkpoint nanoTabPFN_version10_original02/checkpoints_run01/model_final.pt
+
+
+# Sweep all checkpoints in a directory (note: pass DIRECTORY, not .pt file)
+python nanoTabPFN_version10_original02/tabarena_eval/run_sweep.py \
+  --checkpoints-dir wandb/run-20260301_234017-v0gjlhl2/files/checkpoints \
+  --plot-path auto \
+  --plot-metric RMSE
+
+
+
+
+Training:
+python nanoTabPFN_version10_original02/train.py \
+  --device cuda \
+  --prior-dir /mnt/c/Users/apex/Code/Python/tabicl/data/stage1_continuous_y_seed123 \
+  --num-epochs 10 \
+  --batch-size 32 \
+  --lr 2e-4 \
+  --num-layers 5 \
+  --std-min 5e-2 \
+  --z-max 5 \
+  --hard-z-threshold 5 \
+  --max-hard-z-frac 0.01 \
+  --num-bars 5000 \
+  --checkpoint-dir /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/nanoTabPFN_version10_original02/checkpoints_run01 \
+  --wandb-project nanoTabPFN_version10_original02
+
+Evluation:
+python nanoTabPFN_version10_original02/evaluation.py \
+  --checkpoint nanoTabPFN_version10_original02/checkpoints_run01/model_step_0030000.pt \
+  --device cuda \
+  --max-features-eval 32 \
+  --new-instances-eval 1000 \
+  --n-splits 5 \
+  --num-bins 10 \
+  --sharpness-coverage 0.90 \
+  --random-state 0 \
+  --verbose \
+  --output-json nanoTabPFN_version10_original02/checkpoints_run01/model_step_0030000_rows1000_eval.json

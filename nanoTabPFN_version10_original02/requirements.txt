@@ -1,0 +1,25 @@
+# Recommended runtime for nanoTabPFN_version10_original02 on CUDA Vast.ai hosts.
+#
+# Use Python 3.11. The PyTorch CUDA 12.8 wheels work on Vast hosts whose
+# driver advertises CUDA 12.8 or newer, including the RTX 3080 Ti instance used
+# for this setup.
+#
+# The tabpfn package is needed only to regenerate the cached v2 regressor border
+# asset. Training and evaluation use the saved asset in assets/.
+
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+torch==2.8.0+cu128
+numpy==2.3.3
+pandas==2.3.3
+scikit-learn==1.7.1
+scipy==1.15.3
+matplotlib==3.10.5
+tqdm==4.67.1
+wandb==0.23.0
+schedulefree==1.4.0
+openml==0.15.1
+tabpfn>=2.0
+
+# Optional, only needed to run nanoTabPFN_version10_original02/tests:
+# pytest
