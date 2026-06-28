@@ -1,0 +1,283 @@
+=== reg03 10M DDPM500 append100 merge start ===
+Thu Jun 25 16:04:25 AEST 2026
+Thu Jun 25 16:04:25 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.51.03              Driver Version: 576.28         CUDA Version: 12.9     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4070        On  |   00000000:01:00.0  On |                  N/A |
+|  0%   38C    P5             24W /  200W |    1102MiB /  12282MiB |      2%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A              24      G   /Xwayland                             N/A      |
++-----------------------------------------------------------------------------------------+
+--- running extra 100 repeats ---
+Loading checkpoint: TabICL_regression03/runs/10M/step-120000.pt
+Evaluation AMP: enabled (dtype=bfloat16)
+Loading regression benchmark datasets...
+[1/28] Processing abalone (OpenML ID=42726) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_abalone.pkl
+  Added: abalone | X.shape=(200, 8) | y.shape=(200,) (kept so far: 1)
+[2/28] Processing airfoil_self_noise (OpenML ID=44957) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_airfoil_self_noise.pkl
+  Added: airfoil_self_noise | X.shape=(200, 5) | y.shape=(200,) (kept so far: 2)
+[3/28] Processing auction_verification (OpenML ID=44958) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_auction_verification.pkl
+  Added: auction_verification | X.shape=(200, 7) | y.shape=(200,) (kept so far: 3)
+[4/28] Processing boston (OpenML ID=531) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_boston.pkl
+  Added: boston | X.shape=(200, 13) | y.shape=(200,) (kept so far: 4)
+[5/28] Processing cars (OpenML ID=44994) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_cars.pkl
+  Added: cars | X.shape=(200, 17) | y.shape=(200,) (kept so far: 5)
+[6/28] Processing colleges (OpenML ID=42727) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_colleges.pkl
+  Skipped: too many features (44 > 32)
+[7/28] Processing concrete_compressive_strength (OpenML ID=44959) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_concrete_compressive_strength.pkl
+  Added: concrete_compressive_strength | X.shape=(200, 8) | y.shape=(200,) (kept so far: 6)
+[8/28] Processing cpu_activity (OpenML ID=44978) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_cpu_activity.pkl
+  Added: cpu_activity | X.shape=(200, 21) | y.shape=(200,) (kept so far: 7)
+[9/28] Processing energy_efficiency (OpenML ID=44960) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_energy_efficiency.pkl
+  Added: energy_efficiency | X.shape=(200, 8) | y.shape=(200,) (kept so far: 8)
+[10/28] Processing geographical_origin_of_music (OpenML ID=44965) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_geographical_origin_of_music.pkl
+  Skipped: too many features (116 > 32)
+[11/28] Processing grid_stability (OpenML ID=44973) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_grid_stability.pkl
+  Added: grid_stability | X.shape=(200, 12) | y.shape=(200,) (kept so far: 9)
+[12/28] Processing house_prices_nominal (OpenML ID=42563) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_house_prices_nominal.pkl
+  Skipped: too many features (79 > 32)
+[13/28] Processing kin8nm (OpenML ID=44980) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_kin8nm.pkl
+  Added: kin8nm | X.shape=(200, 8) | y.shape=(200,) (kept so far: 10)
+[14/28] Processing Mercedes_Benz_Greener_Manufacturing (OpenML ID=42570) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_Mercedes_Benz_Greener_Manufacturing.pkl
+  Skipped: too many features (364 > 32)
+[15/28] Processing MIP-2016-regression (OpenML ID=43071) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_MIP-2016-regression.pkl
+  Skipped: too many features (116 > 32)
+[16/28] Processing Moneyball (OpenML ID=41021) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_Moneyball.pkl
+  Added: Moneyball | X.shape=(200, 14) | y.shape=(200,) (kept so far: 11)
+[17/28] Processing pumadyn32nh (OpenML ID=44981) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_pumadyn32nh.pkl
+  Added: pumadyn32nh | X.shape=(200, 32) | y.shape=(200,) (kept so far: 12)
+[18/28] Processing QSAR_fish_toxicity (OpenML ID=44970) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_QSAR_fish_toxicity.pkl
+  Added: QSAR_fish_toxicity | X.shape=(200, 6) | y.shape=(200,) (kept so far: 13)
+[19/28] Processing quake (OpenML ID=550) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_quake.pkl
+  Added: quake | X.shape=(200, 3) | y.shape=(200,) (kept so far: 14)
+[20/28] Processing SAT11-HAND-runtime-regression (OpenML ID=41980) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_SAT11-HAND-runtime-regression.pkl
+  Skipped: too many features (114 > 32)
+[21/28] Processing sensory (OpenML ID=546) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_sensory.pkl
+  Added: sensory | X.shape=(200, 11) | y.shape=(200,) (kept so far: 15)
+[22/28] Processing socmob (OpenML ID=541) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_socmob.pkl
+  Added: socmob | X.shape=(200, 5) | y.shape=(200,) (kept so far: 16)
+[23/28] Processing space_ga (OpenML ID=507) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_space_ga.pkl
+  Added: space_ga | X.shape=(200, 6) | y.shape=(200,) (kept so far: 17)
+[24/28] Processing student_performance (OpenML ID=44967) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_student_performance.pkl
+  Added: student_performance | X.shape=(200, 30) | y.shape=(200,) (kept so far: 18)
+[25/28] Processing tecator (OpenML ID=505) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_tecator.pkl
+  Skipped: too many features (124 > 32)
+[26/28] Processing topo_2_1 (OpenML ID=422) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_topo_2_1.pkl
+  Skipped: too many features (261 > 32)
+[27/28] Processing us_crime (OpenML ID=42730) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_us_crime.pkl
+  Skipped: too many features (126 > 32)
+[28/28] Processing yprop_4_1 (OpenML ID=416) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_yprop_4_1.pkl
+  Skipped: too many features (212 > 32)
+
+Cache stats: 28 hits, 0 misses
+Loaded 18 dataset(s).
+
+Evaluating datasets:   0%|          | 0/18 [00:00<?, ?dataset/s]
+abalone folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+abalone folds:  20%|██        | 1/5 [03:33<14:15, 213.82s/fold][A
+abalone folds:  40%|████      | 2/5 [07:11<10:47, 215.84s/fold][A
+abalone folds:  60%|██████    | 3/5 [10:47<07:12, 216.07s/fold][A
+abalone folds:  80%|████████  | 4/5 [14:24<03:36, 216.45s/fold][A
+abalone folds: 100%|██████████| 5/5 [18:04<00:00, 217.86s/fold][A
+                                                               [AEvaluating datasets:   6%|▌         | 1/18 [18:04<5:07:21, 1084.80s/dataset]
+airfoil_self_noise folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+airfoil_self_noise folds:  20%|██        | 1/5 [02:43<10:55, 163.97s/fold][A
+airfoil_self_noise folds:  40%|████      | 2/5 [05:28<08:13, 164.54s/fold][A
+airfoil_self_noise folds:  60%|██████    | 3/5 [08:13<05:29, 164.74s/fold][A
+airfoil_self_noise folds:  80%|████████  | 4/5 [10:58<02:44, 164.82s/fold][A
+airfoil_self_noise folds: 100%|██████████| 5/5 [13:42<00:00, 164.43s/fold][A
+                                                                          [AEvaluating datasets:  11%|█         | 2/18 [31:47<4:08:08, 930.55s/dataset] 
+auction_verification folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+auction_verification folds:  20%|██        | 1/5 [03:19<13:19, 199.93s/fold][A
+auction_verification folds:  40%|████      | 2/5 [06:39<09:59, 199.90s/fold][A
+auction_verification folds:  60%|██████    | 3/5 [09:58<06:38, 199.35s/fold][A
+auction_verification folds:  80%|████████  | 4/5 [13:18<03:19, 199.54s/fold][A
+auction_verification folds: 100%|██████████| 5/5 [16:37<00:00, 199.48s/fold][A
+                                                                            [AEvaluating datasets:  17%|█▋        | 3/18 [48:25<4:00:18, 961.22s/dataset]
+boston folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+boston folds:  20%|██        | 1/5 [05:10<20:40, 310.03s/fold][A
+boston folds:  40%|████      | 2/5 [10:19<15:28, 309.48s/fold][A
+boston folds:  60%|██████    | 3/5 [15:28<10:18, 309.26s/fold][A
+boston folds:  80%|████████  | 4/5 [20:37<05:09, 309.19s/fold][A
+boston folds: 100%|██████████| 5/5 [25:46<00:00, 309.18s/fold][A
+                                                              [AEvaluating datasets:  22%|██▏       | 4/18 [1:14:11<4:38:11, 1192.23s/dataset]
+cars folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+cars folds:  20%|██        | 1/5 [06:13<24:52, 373.01s/fold][A
+cars folds:  40%|████      | 2/5 [12:22<18:32, 370.75s/fold][A
+cars folds:  60%|██████    | 3/5 [18:26<12:15, 367.93s/fold][A
+cars folds:  80%|████████  | 4/5 [24:31<06:06, 366.54s/fold][A
+cars folds: 100%|██████████| 5/5 [30:36<00:00, 366.23s/fold][A
+                                                            [AEvaluating datasets:  28%|██▊       | 5/18 [1:44:48<5:08:40, 1424.68s/dataset]
+concrete_compressive_strength folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+concrete_compressive_strength folds:  20%|██        | 1/5 [03:31<14:05, 211.41s/fold][A
+concrete_compressive_strength folds:  40%|████      | 2/5 [07:02<10:34, 211.40s/fold][A
+concrete_compressive_strength folds:  60%|██████    | 3/5 [10:34<07:02, 211.40s/fold][A
+concrete_compressive_strength folds:  80%|████████  | 4/5 [14:06<03:31, 211.88s/fold][A
+concrete_compressive_strength folds: 100%|██████████| 5/5 [17:38<00:00, 211.69s/fold][A
+                                                                                     [AEvaluating datasets:  33%|███▎      | 6/18 [2:02:26<4:20:00, 1300.07s/dataset]
+cpu_activity folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+cpu_activity folds:  20%|██        | 1/5 [07:15<29:00, 435.23s/fold][A
+cpu_activity folds:  40%|████      | 2/5 [14:30<21:45, 435.25s/fold][A
+cpu_activity folds:  60%|██████    | 3/5 [21:45<14:30, 435.20s/fold][A
+cpu_activity folds:  80%|████████  | 4/5 [29:00<07:15, 435.23s/fold][A
+cpu_activity folds: 100%|██████████| 5/5 [36:16<00:00, 435.21s/fold][A
+                                                                    [AEvaluating datasets:  39%|███▉      | 7/18 [2:38:42<4:50:51, 1586.46s/dataset]
+energy_efficiency folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+energy_efficiency folds:  20%|██        | 1/5 [03:32<14:10, 212.61s/fold][A
+energy_efficiency folds:  40%|████      | 2/5 [07:03<10:35, 211.85s/fold][A
+energy_efficiency folds:  60%|██████    | 3/5 [10:35<07:03, 211.60s/fold][A
+energy_efficiency folds:  80%|████████  | 4/5 [14:06<03:31, 211.47s/fold][A
+energy_efficiency folds: 100%|██████████| 5/5 [17:38<00:00, 211.83s/fold][A
+                                                                         [AEvaluating datasets:  44%|████▍     | 8/18 [2:56:21<3:56:25, 1418.53s/dataset]
+grid_stability folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+grid_stability folds:  20%|██        | 1/5 [04:38<18:33, 278.44s/fold][A
+grid_stability folds:  40%|████      | 2/5 [09:16<13:55, 278.44s/fold][A
+grid_stability folds:  60%|██████    | 3/5 [13:55<09:16, 278.43s/fold][A
+grid_stability folds:  80%|████████  | 4/5 [18:33<04:38, 278.44s/fold][A
+grid_stability folds: 100%|██████████| 5/5 [23:12<00:00, 278.44s/fold][A
+                                                                      [AEvaluating datasets:  50%|█████     | 9/18 [3:19:33<3:31:32, 1410.30s/dataset]
+kin8nm folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+kin8nm folds:  20%|██        | 1/5 [03:31<14:05, 211.37s/fold][A
+kin8nm folds:  40%|████      | 2/5 [07:03<10:36, 212.01s/fold][A
+kin8nm folds:  60%|██████    | 3/5 [10:35<07:03, 211.75s/fold][A
+kin8nm folds:  80%|████████  | 4/5 [14:06<03:31, 211.57s/fold][A
+kin8nm folds: 100%|██████████| 5/5 [17:39<00:00, 211.88s/fold][A
+                                                              [AEvaluating datasets:  56%|█████▌    | 10/18 [3:37:12<2:53:34, 1301.85s/dataset]
+Moneyball folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+Moneyball folds:  20%|██        | 1/5 [05:16<21:07, 316.86s/fold][A
+Moneyball folds:  40%|████      | 2/5 [10:34<15:52, 317.47s/fold][A
+Moneyball folds:  60%|██████    | 3/5 [15:52<10:35, 317.68s/fold][A
+Moneyball folds:  80%|████████  | 4/5 [21:10<05:17, 317.77s/fold][A
+Moneyball folds: 100%|██████████| 5/5 [26:28<00:00, 317.82s/fold][A
+                                                                 [AEvaluating datasets:  61%|██████    | 11/18 [4:03:41<2:42:07, 1389.58s/dataset]
+pumadyn32nh folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+pumadyn32nh folds:  20%|██        | 1/5 [10:12<40:50, 612.74s/fold][A
+pumadyn32nh folds:  40%|████      | 2/5 [20:24<30:36, 612.13s/fold][A
+pumadyn32nh folds:  60%|██████    | 3/5 [30:37<20:24, 612.38s/fold][A
+pumadyn32nh folds:  80%|████████  | 4/5 [40:48<10:12, 612.06s/fold][A
+pumadyn32nh folds: 100%|██████████| 5/5 [51:01<00:00, 612.29s/fold][A
+                                                                   [AEvaluating datasets:  67%|██████▋   | 12/18 [4:54:42<3:09:48, 1898.16s/dataset]
+QSAR_fish_toxicity folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+QSAR_fish_toxicity folds:  20%|██        | 1/5 [02:55<11:42, 175.56s/fold][A
+QSAR_fish_toxicity folds:  40%|████      | 2/5 [05:52<08:48, 176.12s/fold][A
+QSAR_fish_toxicity folds:  60%|██████    | 3/5 [08:47<05:51, 175.88s/fold][A
+QSAR_fish_toxicity folds:  80%|████████  | 4/5 [11:44<02:56, 176.19s/fold][A
+QSAR_fish_toxicity folds: 100%|██████████| 5/5 [14:39<00:00, 175.97s/fold][A
+                                                                          [AEvaluating datasets:  72%|███████▏  | 13/18 [5:09:22<2:12:28, 1589.70s/dataset]
+quake folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+quake folds:  20%|██        | 1/5 [02:04<08:18, 124.75s/fold][A
+quake folds:  40%|████      | 2/5 [04:09<06:14, 124.79s/fold][A
+quake folds:  60%|██████    | 3/5 [06:14<04:09, 124.82s/fold][A
+quake folds:  80%|████████  | 4/5 [08:19<02:04, 124.82s/fold][A
+quake folds: 100%|██████████| 5/5 [10:23<00:00, 124.79s/fold][A
+                                                             [AEvaluating datasets:  78%|███████▊  | 14/18 [5:19:46<1:26:32, 1298.00s/dataset]
+sensory folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+sensory folds:  20%|██        | 1/5 [04:23<17:32, 263.01s/fold][A
+sensory folds:  40%|████      | 2/5 [08:46<13:09, 263.05s/fold][A
+sensory folds:  60%|██████    | 3/5 [13:08<08:45, 262.66s/fold][A
+sensory folds:  80%|████████  | 4/5 [17:31<04:22, 262.78s/fold][A
+sensory folds: 100%|██████████| 5/5 [21:54<00:00, 262.87s/fold][A
+                                                               [AEvaluating datasets:  83%|████████▎ | 15/18 [5:41:40<1:05:08, 1302.91s/dataset]
+socmob folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+socmob folds:  20%|██        | 1/5 [02:40<10:42, 160.53s/fold][A
+socmob folds:  40%|████      | 2/5 [05:21<08:01, 160.51s/fold][A
+socmob folds:  60%|██████    | 3/5 [08:01<05:20, 160.48s/fold][A
+socmob folds:  80%|████████  | 4/5 [10:41<02:40, 160.47s/fold][A
+socmob folds: 100%|██████████| 5/5 [13:21<00:00, 160.20s/fold][A
+                                                              [AEvaluating datasets:  89%|████████▉ | 16/18 [5:55:02<38:24, 1152.03s/dataset]  
+space_ga folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+space_ga folds:  20%|██        | 1/5 [02:56<11:45, 176.49s/fold][A
+space_ga folds:  40%|████      | 2/5 [05:52<08:47, 175.97s/fold][A
+space_ga folds:  60%|██████    | 3/5 [08:48<05:52, 176.21s/fold][A
+space_ga folds:  80%|████████  | 4/5 [11:44<02:55, 175.98s/fold][A
+space_ga folds: 100%|██████████| 5/5 [14:40<00:00, 176.17s/fold][A
+                                                                [AEvaluating datasets:  94%|█████████▍| 17/18 [6:09:43<17:50, 1070.45s/dataset]
+student_performance folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+student_performance folds:  20%|██        | 1/5 [09:40<38:40, 580.24s/fold][A
+student_performance folds:  40%|████      | 2/5 [19:21<29:02, 580.73s/fold][A
+student_performance folds:  60%|██████    | 3/5 [29:02<19:21, 580.87s/fold][A
+student_performance folds:  80%|████████  | 4/5 [38:42<09:40, 580.67s/fold][A
+student_performance folds: 100%|██████████| 5/5 [48:23<00:00, 580.82s/fold][A
+                                                                           [AEvaluating datasets: 100%|██████████| 18/18 [6:58:06<00:00, 1621.35s/dataset]Evaluating datasets: 100%|██████████| 18/18 [6:58:06<00:00, 1393.72s/dataset]
+Saved evaluation details to TabICL_regression03/runs/10M/step-120000_ddpm500_rows200_repeats100_parallel20_extra100.json
+
+======================================================================
+Dataset                                             R2       RMSE        MAE
+----------------------------------------------------------------------
+abalone                                         0.4877     2.1677     1.6106
+airfoil_self_noise                              0.6996     3.5753     2.5339
+auction_verification                            0.8911  3396.8009  1557.8515
+boston                                          0.8710     3.3239     2.2975
+cars                                            0.9194  2490.5242  1609.1103
+concrete_compressive_strength                   0.8150     6.5552     4.7381
+cpu_activity                                    0.9763     2.8839     1.9789
+energy_efficiency                               0.9875     1.0943     0.7069
+grid_stability                                  0.8118     0.0152     0.0119
+kin8nm                                          0.3791     0.1939     0.1486
+Moneyball                                       0.9321    23.3797    18.4947
+pumadyn32nh                                     0.1957     0.0292     0.0235
+QSAR_fish_toxicity                              0.4910     0.9850     0.6988
+quake                                          -0.0902     0.1959     0.1564
+sensory                                         0.0601     0.7733     0.6128
+socmob                                          0.5968    26.4926     9.6690
+space_ga                                        0.5754     0.1330     0.1010
+student_performance                             0.0629     3.1421     2.2395
+----------------------------------------------------------------------
+Mean R2                                         0.5923
+Mean RMSE                                     331.2370
+Mean MAE                                      178.4991
+Mean R2 +/- SE                                  0.5923 +/-   0.0797
+Mean RMSE +/- SE                              331.2370 +/- 220.6009
+Mean MAE +/- SE                               178.4991 +/- 117.1037
+======================================================================
+--- merging base + extra into 200 repeats ---
+Saved merged evaluation JSON to TabICL_regression03/runs/10M/step-120000_ddpm500_rows200_repeats200_parallel20_merged.json with n_repeats=200
+--- running uncertainty on merged repeats200 ---
+Saved uncertainty results to TabICL_regression03/runs/10M/step-120000_ddpm500_rows200_repeats200_parallel20_merged_uncertainty.json
+Mean QICE over 18 dataset(s): 0.023444
+Mean NMPIW over 18 dataset(s): 1.543852
+Mean PIT KS statistic over 18 dataset(s): 0.077688
+--- verification ---
+verified merged 200-repeat evaluation and uncertainty outputs
+Thu Jun 25 23:03:00 AEST 2026
+=== reg03 10M DDPM500 append100 merge done ===

@@ -1,0 +1,111 @@
+Loading checkpoint: TabICL_regression03/runs/10M/step-150000.pt
+Evaluation AMP: enabled (dtype=bfloat16)
+Loading regression benchmark datasets...
+[1/28] Processing abalone (OpenML ID=42726) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_abalone.pkl
+  Added: abalone | X.shape=(200, 8) | y.shape=(200,) (kept so far: 1)
+[2/28] Processing airfoil_self_noise (OpenML ID=44957) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_airfoil_self_noise.pkl
+  Added: airfoil_self_noise | X.shape=(200, 5) | y.shape=(200,) (kept so far: 2)
+[3/28] Processing auction_verification (OpenML ID=44958) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_auction_verification.pkl
+  Added: auction_verification | X.shape=(200, 7) | y.shape=(200,) (kept so far: 3)
+[4/28] Processing boston (OpenML ID=531) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_boston.pkl
+  Added: boston | X.shape=(200, 13) | y.shape=(200,) (kept so far: 4)
+[5/28] Processing cars (OpenML ID=44994) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_cars.pkl
+  Added: cars | X.shape=(200, 17) | y.shape=(200,) (kept so far: 5)
+[6/28] Processing colleges (OpenML ID=42727) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_colleges.pkl
+  Skipped: too many features (44 > 32)
+[7/28] Processing concrete_compressive_strength (OpenML ID=44959) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_concrete_compressive_strength.pkl
+  Added: concrete_compressive_strength | X.shape=(200, 8) | y.shape=(200,) (kept so far: 6)
+[8/28] Processing cpu_activity (OpenML ID=44978) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_cpu_activity.pkl
+  Added: cpu_activity | X.shape=(200, 21) | y.shape=(200,) (kept so far: 7)
+[9/28] Processing energy_efficiency (OpenML ID=44960) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_energy_efficiency.pkl
+  Added: energy_efficiency | X.shape=(200, 8) | y.shape=(200,) (kept so far: 8)
+[10/28] Processing geographical_origin_of_music (OpenML ID=44965) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_geographical_origin_of_music.pkl
+  Skipped: too many features (116 > 32)
+[11/28] Processing grid_stability (OpenML ID=44973) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_grid_stability.pkl
+  Added: grid_stability | X.shape=(200, 12) | y.shape=(200,) (kept so far: 9)
+[12/28] Processing house_prices_nominal (OpenML ID=42563) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_house_prices_nominal.pkl
+  Skipped: too many features (79 > 32)
+[13/28] Processing kin8nm (OpenML ID=44980) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_kin8nm.pkl
+  Added: kin8nm | X.shape=(200, 8) | y.shape=(200,) (kept so far: 10)
+[14/28] Processing Mercedes_Benz_Greener_Manufacturing (OpenML ID=42570) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_Mercedes_Benz_Greener_Manufacturing.pkl
+  Skipped: too many features (364 > 32)
+[15/28] Processing MIP-2016-regression (OpenML ID=43071) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_MIP-2016-regression.pkl
+  Skipped: too many features (116 > 32)
+[16/28] Processing Moneyball (OpenML ID=41021) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_Moneyball.pkl
+  Added: Moneyball | X.shape=(200, 14) | y.shape=(200,) (kept so far: 11)
+[17/28] Processing pumadyn32nh (OpenML ID=44981) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_pumadyn32nh.pkl
+  Added: pumadyn32nh | X.shape=(200, 32) | y.shape=(200,) (kept so far: 12)
+[18/28] Processing QSAR_fish_toxicity (OpenML ID=44970) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_QSAR_fish_toxicity.pkl
+  Added: QSAR_fish_toxicity | X.shape=(200, 6) | y.shape=(200,) (kept so far: 13)
+[19/28] Processing quake (OpenML ID=550) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_quake.pkl
+  Added: quake | X.shape=(200, 3) | y.shape=(200,) (kept so far: 14)
+[20/28] Processing SAT11-HAND-runtime-regression (OpenML ID=41980) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_SAT11-HAND-runtime-regression.pkl
+  Skipped: too many features (114 > 32)
+[21/28] Processing sensory (OpenML ID=546) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_sensory.pkl
+  Added: sensory | X.shape=(200, 11) | y.shape=(200,) (kept so far: 15)
+[22/28] Processing socmob (OpenML ID=541) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_socmob.pkl
+  Added: socmob | X.shape=(200, 5) | y.shape=(200,) (kept so far: 16)
+[23/28] Processing space_ga (OpenML ID=507) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_space_ga.pkl
+  Added: space_ga | X.shape=(200, 6) | y.shape=(200,) (kept so far: 17)
+[24/28] Processing student_performance (OpenML ID=44967) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_student_performance.pkl
+  Added: student_performance | X.shape=(200, 30) | y.shape=(200,) (kept so far: 18)
+[25/28] Processing tecator (OpenML ID=505) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_tecator.pkl
+  Skipped: too many features (124 > 32)
+[26/28] Processing topo_2_1 (OpenML ID=422) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_topo_2_1.pkl
+  Skipped: too many features (261 > 32)
+[27/28] Processing us_crime (OpenML ID=42730) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_us_crime.pkl
+  Skipped: too many features (126 > 32)
+[28/28] Processing yprop_4_1 (OpenML ID=416) ...
+  Loaded from cache: /mnt/c/Users/apex/Code/Python/ndp_pytorch_refactor/TabICL_regression03/tabicl_style/.tabarena_cache/reg_yprop_4_1.pkl
+  Skipped: too many features (212 > 32)
+
+Cache stats: 28 hits, 0 misses
+Loaded 18 dataset(s).
+
+Evaluating datasets:   0%|          | 0/18 [00:00<?, ?dataset/s]
+abalone folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+abalone folds:  20%|██        | 1/5 [00:09<00:36,  9.13s/fold][A
+abalone folds:  40%|████      | 2/5 [00:17<00:26,  8.86s/fold][A
+abalone folds:  60%|██████    | 3/5 [00:25<00:17,  8.51s/fold][A
+abalone folds:  80%|████████  | 4/5 [00:34<00:08,  8.51s/fold][A
+abalone folds: 100%|██████████| 5/5 [00:42<00:00,  8.52s/fold][A
+                                                              [AEvaluating datasets:   6%|▌         | 1/18 [00:42<12:10, 42.95s/dataset]
+airfoil_self_noise folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+airfoil_self_noise folds:  20%|██        | 1/5 [00:06<00:25,  6.47s/fold][A
+airfoil_self_noise folds:  40%|████      | 2/5 [00:12<00:18,  6.16s/fold][A
+airfoil_self_noise folds:  60%|██████    | 3/5 [00:18<00:12,  6.31s/fold][A
+airfoil_self_noise folds:  80%|████████  | 4/5 [00:25<00:06,  6.38s/fold][A
+airfoil_self_noise folds: 100%|██████████| 5/5 [00:31<00:00,  6.41s/fold][A
+                                                                         [AEvaluating datasets:  11%|█         | 2/18 [01:14<09:42, 36.42s/dataset]
+auction_verification folds:   0%|          | 0/5 [00:00<?, ?fold/s][A
+auction_verification folds:  20%|██        | 1/5 [00:07<00:31,  7.80s/fold][A
+auction_verification folds:  40%|████      | 2/5 [00:15<00:22,  7.52s/fold][A
+auction_verification folds:  60%|██████    | 3/5 [00:23<00:15,  7.71s/fold][A
+auction_verification folds:  80%|████████  | 4/5 [00:31<00:07,  7.81s/fold][A
