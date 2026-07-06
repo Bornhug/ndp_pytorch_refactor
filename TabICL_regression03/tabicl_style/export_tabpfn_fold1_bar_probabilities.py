@@ -116,6 +116,47 @@ def ensure_output_path(path: Path, *, overwrite: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def dump_pretty_with_compact_distribution_arrays(
+    payload: dict[str, Any],
+    output_path: Path,
+) -> None:
+    """Pretty-print JSON while keeping long distribution arrays on one line."""
+    tmp_payload = json.loads(json.dumps(payload, ensure_ascii=True, allow_nan=False))
+    replacements: dict[str, str] = {}
+    placeholder_id = 0
+
+    def replace_array(container: dict[str, Any], key: str) -> None:
+        nonlocal placeholder_id
+        if key not in container:
+            return
+        placeholder = f"__COMPACT_ARRAY_PLACEHOLDER_{placeholder_id:06d}__"
+        placeholder_id += 1
+        replacements[placeholder] = json.dumps(
+            container[key],
+            ensure_ascii=True,
+            allow_nan=False,
+            separators=(",", ":"),
+        )
+        container[key] = placeholder
+
+    for method_payload in tmp_payload.get("methods", {}).values():
+        for dataset_result in method_payload.get("dataset_results", []):
+            for fold_payload in dataset_result.get("folds", []):
+                replace_array(fold_payload, "bar_edges_raw")
+                for target in fold_payload.get("targets", []):
+                    replace_array(target, "bar_probabilities")
+
+    pretty = json.dumps(tmp_payload, indent=2, ensure_ascii=True, allow_nan=False)
+    for placeholder, compact_array in replacements.items():
+        pretty = pretty.replace(json.dumps(placeholder, ensure_ascii=True), compact_array)
+    pretty += "\n"
+
+    tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+    tmp_path.write_text(pretty, encoding="utf-8")
+    validate_payload(json.loads(tmp_path.read_text(encoding="utf-8")))
+    tmp_path.replace(output_path)
+
+
 def selected_fold_indices(
     X: np.ndarray,
     *,
@@ -368,14 +409,17 @@ def export_method(
         dataset_results.append(
             {
                 "dataset": dataset_name,
-                "fold_index": int(fold_index),
-                "train_indices": np.asarray(train_idx, dtype=np.int64).tolist(),
-                "test_indices": np.asarray(test_idx, dtype=np.int64).tolist(),
-                "bar_edges_raw": bar_edges_raw.tolist(),
-                "bar_edge_count": BAR_EDGE_COUNT,
-                "bar_probability_count": BAR_PROBABILITY_COUNT,
-                "bar_edge_semantics": BAR_EDGE_SEMANTICS,
-                "targets": targets,
+                "folds": [
+                    {
+                        "fold_index": int(fold_index),
+                        "train_indices": np.asarray(train_idx, dtype=np.int64).tolist(),
+                        "test_indices": np.asarray(test_idx, dtype=np.int64).tolist(),
+                        "bar_edge_count": BAR_EDGE_COUNT,
+                        "bar_probability_count": BAR_PROBABILITY_COUNT,
+                        "bar_edges_raw": bar_edges_raw.tolist(),
+                        "targets": targets,
+                    }
+                ],
             }
         )
     return {
@@ -388,50 +432,75 @@ def validate_payload(payload: dict[str, Any]) -> None:
     methods = payload.get("methods", {})
     if set(methods) != {"nanoTabPFN_6M", "TabPFN_v2_official", "TabPFN_v3_official"}:
         raise ValueError(f"unexpected methods: {sorted(methods)}")
+    metadata = payload.get("metadata", {})
+    if metadata.get("bar_edge_semantics") != BAR_EDGE_SEMANTICS:
+        raise ValueError("metadata has unexpected bar_edge_semantics")
     for method_name, method_payload in methods.items():
         dataset_results = method_payload.get("dataset_results", [])
         if len(dataset_results) != 4:
             raise ValueError(f"{method_name} expected 4 dataset results, got {len(dataset_results)}")
         for dataset_result in dataset_results:
-            if int(dataset_result.get("fold_index")) != 1:
-                raise ValueError(f"{method_name}/{dataset_result.get('dataset')} fold_index is not 1")
-            bar_edges_raw = validate_bar_edges_raw(
-                dataset_result.get("bar_edges_raw"),
-                name=f"{method_name}/{dataset_result.get('dataset')} bar_edges_raw",
-            )
-            if int(dataset_result.get("bar_edge_count", -1)) != BAR_EDGE_COUNT:
+            forbidden_root_keys = {
+                "fold_index",
+                "train_indices",
+                "test_indices",
+                "bar_edges_raw",
+                "bar_edge_count",
+                "bar_probability_count",
+                "bar_edge_semantics",
+                "targets",
+            }
+            present_forbidden = forbidden_root_keys.intersection(dataset_result)
+            if present_forbidden:
                 raise ValueError(
-                    f"{method_name}/{dataset_result.get('dataset')} bar_edge_count is not "
-                    f"{BAR_EDGE_COUNT}"
+                    f"{method_name}/{dataset_result.get('dataset')} has root-level "
+                    f"fold fields: {sorted(present_forbidden)}"
                 )
-            if int(dataset_result.get("bar_probability_count", -1)) != BAR_PROBABILITY_COUNT:
+            folds = dataset_result.get("folds", [])
+            if len(folds) != 1:
                 raise ValueError(
-                    f"{method_name}/{dataset_result.get('dataset')} "
-                    f"bar_probability_count is not {BAR_PROBABILITY_COUNT}"
+                    f"{method_name}/{dataset_result.get('dataset')} expected 1 fold, "
+                    f"got {len(folds)}"
                 )
-            if dataset_result.get("bar_edge_semantics") != BAR_EDGE_SEMANTICS:
-                raise ValueError(
-                    f"{method_name}/{dataset_result.get('dataset')} has unexpected "
-                    "bar_edge_semantics"
-                )
-            targets = dataset_result.get("targets", [])
-            if len(targets) != 40:
-                raise ValueError(
-                    f"{method_name}/{dataset_result.get('dataset')} expected 40 targets, got {len(targets)}"
-                )
-            for target in targets:
-                probs = target.get("bar_probabilities", [])
-                if len(probs) != BAR_PROBABILITY_COUNT:
+            for fold_payload in folds:
+                if int(fold_payload.get("fold_index")) != 1:
                     raise ValueError(
-                        f"target does not have {BAR_PROBABILITY_COUNT} bar probabilities"
+                        f"{method_name}/{dataset_result.get('dataset')} fold_index is not 1"
                     )
-                if abs(float(sum(probs)) - 1.0) > 1e-5:
-                    raise ValueError("target bar probabilities do not sum to 1")
-            if len(bar_edges_raw) != len(targets[0]["bar_probabilities"]) + 1:
-                raise ValueError(
-                    f"{method_name}/{dataset_result.get('dataset')} edge/probability "
-                    "count mismatch"
+                bar_edges_raw = validate_bar_edges_raw(
+                    fold_payload.get("bar_edges_raw"),
+                    name=f"{method_name}/{dataset_result.get('dataset')} bar_edges_raw",
                 )
+                if int(fold_payload.get("bar_edge_count", -1)) != BAR_EDGE_COUNT:
+                    raise ValueError(
+                        f"{method_name}/{dataset_result.get('dataset')} "
+                        f"bar_edge_count is not {BAR_EDGE_COUNT}"
+                    )
+                if int(fold_payload.get("bar_probability_count", -1)) != BAR_PROBABILITY_COUNT:
+                    raise ValueError(
+                        f"{method_name}/{dataset_result.get('dataset')} "
+                        f"bar_probability_count is not {BAR_PROBABILITY_COUNT}"
+                    )
+                targets = fold_payload.get("targets", [])
+                if len(targets) != 40:
+                    raise ValueError(
+                        f"{method_name}/{dataset_result.get('dataset')} expected "
+                        f"40 targets, got {len(targets)}"
+                    )
+                for target in targets:
+                    probs = target.get("bar_probabilities", [])
+                    if len(probs) != BAR_PROBABILITY_COUNT:
+                        raise ValueError(
+                            f"target does not have {BAR_PROBABILITY_COUNT} "
+                            "bar probabilities"
+                        )
+                    if abs(float(sum(probs)) - 1.0) > 1e-5:
+                        raise ValueError("target bar probabilities do not sum to 1")
+                if len(bar_edges_raw) != len(targets[0]["bar_probabilities"]) + 1:
+                    raise ValueError(
+                        f"{method_name}/{dataset_result.get('dataset')} "
+                        "edge/probability count mismatch"
+                    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -552,13 +621,7 @@ def main(argv: list[str] | None = None) -> dict[str, Any]:
     }
     validate_payload(payload)
 
-    tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
-    with tmp_path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=True, allow_nan=False)
-        f.write("\n")
-    with tmp_path.open("r", encoding="utf-8") as f:
-        validate_payload(json.load(f))
-    tmp_path.replace(output_path)
+    dump_pretty_with_compact_distribution_arrays(payload, output_path)
     size_mb = output_path.stat().st_size / (1024 * 1024)
     print(f"Saved {output_path} ({size_mb:.2f} MB)", flush=True)
     return payload
